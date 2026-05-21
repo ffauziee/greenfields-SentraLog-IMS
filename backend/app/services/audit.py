@@ -10,6 +10,7 @@ def to_json(value):
 def create_audit_log(user_id: str, action: str, entity_type: str,
                      entity_id: str, old_value: dict = None, new_value: dict = None,
                      description: str = None, ip_address: str = None):
+    """Insert a row into audit_logs recording who did what to which entity."""
     execute("""
         INSERT INTO audit_logs (user_id, action, entity_type, entity_id, old_value, new_value, description, ip_address)
         VALUES (%s, %s, %s, %s, %s, %s, %s, %s)

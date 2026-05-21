@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { usersAPI } from '../services/api'
+import { cn } from '../lib/cn'
 import Toast from '../components/Toast'
 
 export default function ManageUsers({ user }) {
@@ -93,7 +94,7 @@ export default function ManageUsers({ user }) {
 
   const roleBadge = (role) => {
     const colors = { admin: 'bg-purple-100 text-purple-700', operator: 'bg-blue-100 text-blue-700' }
-    return <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[role] || 'bg-gray-100'}`}>{role}</span>
+    return <span className={cn('px-2 py-0.5 rounded text-xs font-medium', colors[role] || 'bg-gray-100')}>{role}</span>
   }
 
   return (
@@ -136,12 +137,12 @@ export default function ManageUsers({ user }) {
               return filtered.length === 0 ? (
                 <tr><td colSpan="6" className="p-6 text-center text-gray-500">{search ? 'No users match your search' : 'No users found'}</td></tr>
               ) : filtered.map(u => (
-              <tr key={u.id} className={`border-t hover:bg-gray-50 ${!u.is_active ? 'opacity-50' : ''}`}>
+              <tr key={u.id} className={cn('border-t hover:bg-gray-50', !u.is_active && 'opacity-50')}>
                 <td className="p-3 font-medium">{u.username}</td>
                 <td className="p-3">{u.full_name}</td>
                 <td className="p-3">{roleBadge(u.role)}</td>
                 <td className="p-3">
-                  <span className={`px-2 py-0.5 rounded text-xs font-medium ${u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+                  <span className={cn('px-2 py-0.5 rounded text-xs font-medium', u.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700')}>
                     {u.is_active ? 'Active' : 'Inactive'}
                   </span>
                 </td>
@@ -153,7 +154,7 @@ export default function ManageUsers({ user }) {
                     <button onClick={() => { setShowResetPw(u.id); setResetPw('') }}
                             className="bg-orange-600 text-white px-3 py-1 rounded text-xs hover:bg-orange-700">Reset PW</button>
                     <button onClick={() => handleToggleActive(u)}
-                            className={`px-3 py-1 rounded text-xs text-white ${u.is_active ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700'}`}>
+                            className={cn('px-3 py-1 rounded text-xs text-white', u.is_active ? 'bg-yellow-600 hover:bg-yellow-700' : 'bg-green-600 hover:bg-green-700')}>
                       {u.is_active ? 'Deactivate' : 'Activate'}
                     </button>
                     <button onClick={() => handleDelete(u)}

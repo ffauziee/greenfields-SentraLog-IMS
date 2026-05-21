@@ -5,6 +5,7 @@ from ..utils.auth import hash_password, verify_password, create_access_token
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 @router.post("/login", response_model=TokenResponse)
 def login(data: LoginRequest):
+    """Authenticate a user by username and password, returning a JWT token."""
     user = query_one("SELECT * FROM users WHERE username = %s AND is_active = TRUE", (data.username,))
     if not user or not verify_password(data.password, user["password_hash"]):
         raise HTTPException(status_code=401, detail="Invalid credentials")
@@ -17,6 +18,7 @@ def login(data: LoginRequest):
     )
 @router.post("/seed")
 def seed_users():
+    """Insert default admin and operator accounts if they do not already exist."""
     created = []
 
     admin = query_one("SELECT id FROM users WHERE username = 'admin'")

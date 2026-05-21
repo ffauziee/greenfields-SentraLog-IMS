@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { incidentsAPI, usersAPI } from '../services/api'
 import Toast from '../components/Toast'
+import { cn } from '../lib/cn'
 
 const STATUS_OPTIONS = {
   admin: [
@@ -74,6 +75,22 @@ export default function Incidents({ user }) {
   const handleSearch = (e) => {
     e.preventDefault()
     setPage(1)
+  }
+
+  const handleExport = () => {
+    const params = { status_group: tab }
+    if (search) params.search = search
+    if (sevFilter) params.severity = sevFilter
+    incidentsAPI.exportCSV(params)
+      .then(res => {
+        const url = window.URL.createObjectURL(new Blob([res.data]))
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `incidents_${new Date().toISOString().slice(0, 10)}.csv`
+        a.click()
+        window.URL.revokeObjectURL(url)
+      })
+      .catch(() => showToast('Export failed', 'error'))
   }
 
   const switchTab = (key) => {
@@ -153,7 +170,7 @@ export default function Incidents({ user }) {
 
   const statusBadge = (name) => {
     const colors = { OPEN: 'bg-blue-100 text-blue-700', IN_PROGRESS: 'bg-yellow-100 text-yellow-700', RESOLVED: 'bg-green-100 text-green-700', CLOSED: 'bg-gray-100 text-gray-700', ESCALATED: 'bg-red-100 text-red-700' }
-    return <span className={`px-2 py-0.5 rounded text-xs font-medium ${colors[name] || 'bg-gray-100'}`}>{name}</span>
+    return <span className={cn('px-2 py-0.5 rounded text-xs font-medium', colors[name] || 'bg-gray-100')}>{name}</span>
   }
 
   const totalPages = Math.ceil(total / limit)
@@ -173,11 +190,10 @@ export default function Incidents({ user }) {
       <div className="flex gap-1 mb-4 border-b">
         {tabs.map(t => (
           <button key={t.key} onClick={() => switchTab(t.key)}
-                  className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                    tab === t.key
-                      ? 'border-blue-600 text-blue-600'
-                      : 'border-transparent text-gray-500 hover:text-gray-700'
-                  }`}>
+                  className={cn(
+                    'px-4 py-2 text-sm font-medium border-b-2 transition-colors',
+                    tab === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'
+                  )}>
             {t.label}
           </button>
         ))}
@@ -196,6 +212,8 @@ export default function Incidents({ user }) {
           <option value="1">LOW</option>
         </select>
         <button type="submit" className="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">Search</button>
+        <button type="button" onClick={handleExport}
+                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap">Export CSV</button>
       </form>
 
       <div className="bg-white rounded-xl shadow overflow-x-auto" style={{ scrollbarGutter: 'stable' }}>

@@ -1,16 +1,50 @@
-# React + Vite
+# Greenfields IMS — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + Vite SPA for the Greenfields Incident Management System.
 
-Currently, two official plugins are available:
+## Setup
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+```bash
+npm install
+npm run dev     # Dev server on port 5173 (proxies /api to localhost:8000)
+npm run build   # Production build → dist/
+npm run lint    # ESLint
+```
 
-## React Compiler
+## Structure
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+```
+src/
+├── App.jsx             # Router + auth gate + layout
+├── main.jsx            # Entry point
+├── index.css           # Tailwind directives
+├── lib/
+│   └── cn.js           # Class merge utility
+├── services/
+│   └── api.js          # Axios client with JWT interceptor
+├── components/
+│   ├── Sidebar.jsx     # Navigation
+│   └── Toast.jsx       # Notifications
+└── pages/
+    ├── Login.jsx
+    ├── Dashboard.jsx
+    ├── Incidents.jsx
+    ├── ManageUsers.jsx  # Admin only
+    └── ActivityLog.jsx  # Admin only
+```
 
-## Expanding the ESLint configuration
+## Key Dependencies
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- React 19, React Router DOM 7
+- Vite 8, TailwindCSS 3.4
+- Axios 1.16, Lucide React icons
+- clsx + tailwind-merge
+
+## Dev Proxy
+
+```js
+// vite.config.js — proxies /api to backend
+server: { proxy: { '/api': 'http://localhost:8000' } }
+```
+
+See the [main project README](../README.md) for full documentation.

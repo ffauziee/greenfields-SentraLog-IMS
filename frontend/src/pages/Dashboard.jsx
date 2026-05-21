@@ -1,10 +1,14 @@
 import { useState, useEffect } from 'react'
 import { incidentsAPI } from '../services/api'
 import { Link } from 'react-router-dom'
+import { cn } from '../lib/cn'
 
 export default function Dashboard({ user }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [detailId, setDetailId] = useState(null)
+  const [detail, setDetail] = useState(null)
+  const [detailLoading, setDetailLoading] = useState(false)
   const isAdmin = user?.role === 'admin'
 
   useEffect(() => {
@@ -13,6 +17,15 @@ export default function Dashboard({ user }) {
       .catch(console.error)
       .finally(() => setLoading(false))
   }, [])
+
+  useEffect(() => {
+    if (!detailId) { setDetail(null); return }
+    setDetailLoading(true)
+    incidentsAPI.get(detailId)
+      .then(res => setDetail(res.data))
+      .catch(() => { setDetail(null); setDetailId(null) })
+      .finally(() => setDetailLoading(false))
+  }, [detailId])
 
   if (loading) return <div className="p-6 text-gray-500">Loading dashboard...</div>
 
@@ -65,12 +78,13 @@ export default function Dashboard({ user }) {
             <thead className="bg-gray-50 text-xs uppercase text-gray-500">
               <tr>
                 <th className="p-3 text-left w-[10%]">Attention</th>
-                <th className="p-3 text-left w-[28%]">Title</th>
-                <th className="p-3 text-left w-[12%]">Severity</th>
-                <th className="p-3 text-left w-[12%]">Status</th>
-                <th className="p-3 text-left w-[12%]">Reported By</th>
-                <th className="p-3 text-left w-[14%]">Assigned To</th>
-                <th className="p-3 text-left w-[12%]">Age</th>
+                <th className="p-3 text-left w-[24%]">Title</th>
+                <th className="p-3 text-left w-[11%]">Severity</th>
+                <th className="p-3 text-left w-[11%]">Status</th>
+                <th className="p-3 text-left w-[11%]">Reported By</th>
+                <th className="p-3 text-left w-[13%]">Assigned To</th>
+                <th className="p-3 text-left w-[10%]">Age</th>
+                <th className="p-3 text-left w-[10%]">Action</th>
               </tr>
             </thead>
             <tbody>
@@ -78,7 +92,7 @@ export default function Dashboard({ user }) {
                 const isOverdue = inc.age_hours > inc.sla_hours
                 return (
                   <tr key={inc.id}
-                      className={`border-t hover:bg-gray-50 ${inc.severity_name === 'CRITICAL' ? 'bg-red-50' : ''}`}>
+                      className={cn('border-t hover:bg-gray-50', inc.severity_name === 'CRITICAL' && 'bg-red-50')}>
                     <td className="p-3">
                       <div className="w-8 bg-gray-200 rounded-full text-xs text-center font-bold"
                            style={{ color: inc.attention_score >= 70 ? '#ef4444' : inc.attention_score >= 40 ? '#f97316' : '#22c55e' }}>
@@ -86,9 +100,7 @@ export default function Dashboard({ user }) {
                       </div>
                     </td>
                     <td className="p-3 font-medium">
-                      <Link to={`/incidents/${inc.id}`} className="text-blue-600 hover:underline">
-                        {inc.title}
-                      </Link>
+                      <span>{inc.title}</span>
                       {isOverdue && <span className="ml-2 text-xs bg-red-100 text-red-600 px-1.5 py-0.5 rounded">SLA breached</span>}
                     </td>
                     <td className="p-3">{severityBadge(inc.severity_name, inc.severity_color)}</td>
@@ -96,11 +108,14 @@ export default function Dashboard({ user }) {
                     <td className="p-3 text-sm">{inc.reported_by_name}</td>
                     <td className="p-3 text-sm">{inc.assigned_to_name || '-'}</td>
                     <td className="p-3 text-sm">{Math.round(inc.age_hours)}h</td>
+                    <td className="p-3">
+                      <button onClick={() => setDetailId(inc.id)} className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Detail</button>
+                    </td>
                   </tr>
                 )
               })}
               {(!data?.attention_incidents || data.attention_incidents.length === 0) && (
-                <tr><td colSpan="7" className="p-6 text-center text-gray-500">No incidents found</td></tr>
+                <tr><td colSpan="8" className="p-6 text-center text-gray-500">No incidents found</td></tr>
               )}
             </tbody>
           </table>
@@ -121,7 +136,10 @@ export default function Dashboard({ user }) {
                   <span className="text-xs text-gray-400">(assigned to you)</span>
                 )}
               </div>
-              <span className="text-sm text-gray-500">{new Date(inc.created_at).toLocaleDateString()}</span>
+              <div className="flex items-center gap-3">
+                <span className="text-sm text-gray-500">{new Date(inc.created_at).toLocaleDateString()}</span>
+                <button onClick={() => setDetailId(inc.id)} className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Detail</button>
+              </div>
             </div>
           ))}
           {(!data?.recent || data.recent.length === 0) && (
@@ -129,6 +147,87 @@ export default function Dashboard({ user }) {
           )}
         </div>
       </div>
+
+      {detailId && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={() => setDetailId(null)}>
+          <div className="bg-white rounded-xl w-full max-w-2xl max-h-[85vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            {detailLoading ? (
+              <div className="p-8 text-center text-gray-500">Loading detail...</div>
+            ) : detail ? (
+              <>
+                <div className="p-6 border-b flex items-start justify-between gap-4">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      {severityBadge(detail.severity_name, detail.severity_color)}
+                      <span className="text-xs text-gray-400">{detail.status_name}</span>
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800">{detail.title}</h2>
+                  </div>
+                  <button onClick={() => setDetailId(null)}
+                          className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                </div>
+
+                <div className="p-6 space-y-4">
+                  {detail.description && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Description</h3>
+                      <p className="text-sm text-gray-700 whitespace-pre-wrap">{detail.description}</p>
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Location</h3>
+                      <p className="text-sm">{detail.location || '-'}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">SLA Hours</h3>
+                      <p className="text-sm">{detail.sla_hours}h</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Reported By</h3>
+                      <p className="text-sm">{detail.reported_by_name}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Assigned To</h3>
+                      <p className="text-sm">{detail.assigned_to_name || '-'}</p>
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Created</h3>
+                      <p className="text-sm">{new Date(detail.created_at).toLocaleString()}</p>
+                    </div>
+                    {detail.resolved_at && (
+                      <div>
+                        <h3 className="text-xs font-semibold text-gray-500 uppercase mb-1">Resolved</h3>
+                        <p className="text-sm">{new Date(detail.resolved_at).toLocaleString()}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {detail.comments && detail.comments.length > 0 && (
+                    <div>
+                      <h3 className="text-xs font-semibold text-gray-500 uppercase mb-2">Comments ({detail.comments.length})</h3>
+                      <div className="space-y-2">
+                        {detail.comments.map(c => (
+                          <div key={c.id} className="bg-gray-50 rounded-lg p-3">
+                            <div className="flex items-center justify-between mb-1">
+                              <span className="text-xs font-medium">{c.username}</span>
+                              <span className="text-xs text-gray-400">{new Date(c.created_at).toLocaleString()}</span>
+                            </div>
+                            <p className="text-sm text-gray-700">{c.content}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="p-8 text-center text-red-500">Failed to load incident detail</div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -1,4 +1,5 @@
 def calculate_attention_score(incident: dict, age_hours: float) -> int:
+    """Compute a 0-100 attention score for an incident based on severity, SLA breach, age, and status."""
     score = 0
     severity_map = {1: 10, 2: 20, 3: 30, 4: 40}
     score += severity_map.get(incident.get("severity_level"), 0)

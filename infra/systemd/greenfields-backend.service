@@ -1,0 +1,46 @@
+[Unit]
+Description=Greenfields Audit & Incident Logs Backend
+After=network.target postgresql.service
+Wants=postgresql.service
+
+[Service]
+Type=simple
+User=greenfields
+Group=greenfields
+WorkingDirectory=/opt/greenfields/backend
+
+# Environment
+EnvironmentFile=/opt/greenfields/backend/.env
+Environment="PYTHONPATH=/opt/greenfields/backend"
+
+# ExecStart with multiple workers for zero-downtime
+ExecStart=/usr/bin/python3 -m uvicorn app.main:app \
+    --host 127.0.0.1 \
+    --port 8000 \
+    --workers 2 \
+    --timeout-graceful-shutdown 30 \
+    --limit-concurrency 100 \
+    --backlog 2048
+
+# Graceful shutdown (SIGTERM)
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=30
+
+# Restart policy
+Restart=always
+RestartSec=5
+
+# Security hardening
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/greenfields/backend
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target

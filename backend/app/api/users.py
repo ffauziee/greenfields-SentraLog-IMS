@@ -25,6 +25,7 @@ def list_users(
     role: Optional[str] = Query(None),
     current_user: dict = Depends(require_role(["admin"]))
 ):
+    """List all users, optionally filtered by role. Admin only."""
     if role:
         users = query_all(
             """SELECT id, username, full_name, role, is_active, created_at
@@ -40,6 +41,7 @@ def list_users(
 
 @router.post("")
 def create_user(data: UserCreate, current_user: dict = Depends(require_role(["admin"]))):
+    """Create a new user. Admin only."""
     existing = query_one("SELECT id FROM users WHERE username = %s", (data.username,))
     if existing:
         raise HTTPException(status_code=400, detail="Username already exists")
@@ -54,6 +56,7 @@ def create_user(data: UserCreate, current_user: dict = Depends(require_role(["ad
 
 @router.put("/{user_id}")
 def update_user(user_id: str, data: UserUpdate, current_user: dict = Depends(require_role(["admin"]))):
+    """Update a user's full_name, role, or active status. Admin only."""
     existing = query_one("SELECT id FROM users WHERE id = %s", (user_id,))
     if not existing:
         raise HTTPException(status_code=404, detail="User not found")
@@ -73,6 +76,7 @@ def update_user(user_id: str, data: UserUpdate, current_user: dict = Depends(req
 
 @router.put("/{user_id}/reset-password")
 def reset_password(user_id: str, data: PasswordReset, current_user: dict = Depends(require_role(["admin"]))):
+    """Reset a user's password. Admin only."""
     existing = query_one("SELECT id FROM users WHERE id = %s", (user_id,))
     if not existing:
         raise HTTPException(status_code=404, detail="User not found")
@@ -82,6 +86,7 @@ def reset_password(user_id: str, data: PasswordReset, current_user: dict = Depen
 
 @router.delete("/{user_id}")
 def delete_user(user_id: str, current_user: dict = Depends(require_role(["admin"]))):
+    """Delete or deactivate a user. Admin only. Deactivates if user has active incidents."""
     if user_id == current_user["id"]:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
 

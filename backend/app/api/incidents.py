@@ -1,5 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from typing import Optional
+import csv, io
 from ..db.database import query_all, query_one, execute
 from ..schemas.incident import IncidentCreate, IncidentUpdate
 from ..utils.auth import get_current_user, require_role
@@ -42,6 +43,7 @@ def apply_role_filter(role: str, user_id: str, where_clause: str, params: list, 
 
 @router.get("/dashboard")
 def get_dashboard(current_user: dict = Depends(get_current_user)):
+    """Return dashboard aggregates and attention-prioritized incidents. Admin sees all; operator sees own."""
     role = current_user["role"]
     user_id = current_user["id"]
 
@@ -142,6 +144,7 @@ def list_incidents(
     limit: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user)
 ):
+    """List incidents with optional search, severity, status filtering, and role-based scoping."""
     role = current_user["role"]
     user_id = current_user["id"]
     offset = (page - 1) * limit
@@ -198,8 +201,87 @@ def list_incidents(
         "data": incidents,
     }
 
+@router.get("/export")
+def export_incidents(
+    search: Optional[str] = Query(None),
+    severity: Optional[int] = Query(None),
+    status_group: Optional[str] = Query("active"),
+    current_user: dict = Depends(get_current_user)
+):
+    """Export filtered incidents as a CSV file. Admin exports all; operator exports own."""
+    role = current_user["role"]
+    user_id = current_user["id"]
+    conditions = ["i.is_deleted = FALSE"]
+    params = []
+
+    if status_group == "archived":
+        conditions.append("i.status_id IN %s")
+        params.append(STATUS_ARCHIVED)
+    elif status_group == "unassigned":
+        if role != "admin":
+            raise HTTPException(status_code=403, detail="Only admin can view unassigned incidents")
+        conditions.append("i.status_id IN %s AND i.assigned_to IS NULL")
+        params.append(STATUS_UNASSIGNED)
+    else:
+        conditions.append("i.status_id IN %s")
+        params.append(STATUS_ACTIVE)
+        if role == "operator":
+            conditions.append("i.assigned_to = %s")
+            params.append(user_id)
+
+    if search:
+        conditions.append("(i.title ILIKE %s OR i.description ILIKE %s)")
+        params.extend([f"%{search}%", f"%{search}%"])
+    if severity:
+        conditions.append("i.severity_id = %s")
+        params.append(severity)
+
+    where_clause = " AND ".join(conditions)
+
+    incidents = query_all(f"""
+        SELECT i.*, s.name as severity_name, s.color as severity_color,
+               s.level as severity_level, s.sla_hours,
+               st.name as status_name,
+               u.username as reported_by_name,
+               a.username as assigned_to_name
+        FROM incidents i
+        JOIN severity_levels s ON i.severity_id = s.id
+        JOIN incident_statuses st ON i.status_id = st.id
+        JOIN users u ON i.reported_by = u.id
+        LEFT JOIN users a ON i.assigned_to = a.id
+        WHERE {where_clause}
+        ORDER BY s.level DESC, i.created_at DESC
+    """, tuple(params))
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Title", "Severity", "Status", "Location", "Reported By",
+                      "Assigned To", "Created At", "Resolved At", "SLA Hours", "Attention Score"])
+
+    for inc in incidents:
+        age_hours = (datetime.now(timezone.utc) - inc["created_at"].replace(tzinfo=timezone.utc)).total_seconds() / 3600 if inc["created_at"] else 0
+        attn_data = {**inc, "age_hours": age_hours}
+        score = calculate_attention_score(attn_data, age_hours)
+        writer.writerow([
+            inc["id"],
+            inc["title"],
+            inc["severity_name"],
+            inc["status_name"],
+            inc.get("location") or "",
+            inc["reported_by_name"],
+            inc.get("assigned_to_name") or "",
+            inc["created_at"].isoformat() if inc.get("created_at") else "",
+            inc["resolved_at"].isoformat() if inc.get("resolved_at") else "",
+            inc.get("sla_hours") or "",
+            score,
+        ])
+
+    return Response(content=output.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=incidents_export.csv"})
+
 @router.get("/{incident_id}")
 def get_incident(incident_id: str, current_user: dict = Depends(get_current_user)):
+    """Get a single incident by ID with its comments. Operator sees only own assigned incidents."""
     incident = query_one("""
         SELECT i.*, s.name as severity_name, s.color as severity_color,
                s.level as severity_level, s.sla_hours,
@@ -231,6 +313,7 @@ def get_incident(incident_id: str, current_user: dict = Depends(get_current_user
 
 @router.post("")
 def create_incident(data: IncidentCreate, current_user: dict = Depends(get_current_user)):
+    """Create a new incident. Operator cannot assign to others; admin may assign freely."""
     role = current_user["role"]
     user_id = current_user["id"]
 
@@ -254,6 +337,7 @@ def create_incident(data: IncidentCreate, current_user: dict = Depends(get_curre
 
 @router.put("/{incident_id}")
 def update_incident(incident_id: str, data: IncidentUpdate, current_user: dict = Depends(get_current_user)):
+    """Update an incident's fields. Operator can only update own incidents; only admin can reassign."""
     role = current_user["role"]
     user_id = current_user["id"]
 
@@ -292,6 +376,7 @@ def update_incident(incident_id: str, data: IncidentUpdate, current_user: dict =
 
 @router.delete("/{incident_id}")
 def delete_incident(incident_id: str, current_user: dict = Depends(get_current_user)):
+    """Soft-delete an incident. Operator can only delete own assigned incidents."""
     role = current_user["role"]
     user_id = current_user["id"]
 

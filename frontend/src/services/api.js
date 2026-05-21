@@ -27,6 +27,7 @@ export const incidentsAPI = {
   create: (data) => api.post('/incidents', data),
   update: (id, data) => api.put(`/incidents/${id}`, data),
   delete: (id) => api.delete(`/incidents/${id}`),
+  exportCSV: (params) => api.get('/incidents/export', { params, responseType: 'blob' }),
 }
 export const usersAPI = {
   list: (params) => api.get('/users', { params }),
@@ -34,4 +35,8 @@ export const usersAPI = {
   update: (id, data) => api.put(`/users/${id}`, data),
   resetPassword: (id, data) => api.put(`/users/${id}/reset-password`, data),
   delete: (id) => api.delete(`/users/${id}`),
+}
+export const auditAPI = {
+  list: (params) => api.get('/audit-logs', { params }),
+  users: () => api.get('/audit-logs/users'),
 }
