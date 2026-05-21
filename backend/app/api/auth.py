@@ -16,12 +16,31 @@ def login(data: LoginRequest):
         user_id=str(user["id"])
     )
 @router.post("/seed")
-def seed_admin():
-    existing = query_one("SELECT id FROM users WHERE username = 'admin'")
-    if existing:
-        return {"message": "Admin user already exists"}
-    execute("""
-        INSERT INTO users (username, email, password_hash, full_name, role)
-        VALUES (%s, %s, %s, %s, %s)
-    """, ("admin", "admin@greenfields.com", hash_password("admin123"), "System Admin", "admin"))
-    return {"message": "Admin user created. Username: admin, Password: admin123"}
+def seed_users():
+    created = []
+
+    admin = query_one("SELECT id FROM users WHERE username = 'admin'")
+    if not admin:
+        execute("""
+            INSERT INTO users (username, email, password_hash, full_name, role)
+            VALUES (%s, %s, %s, %s, %s)
+        """, ("admin", "admin@greenfields.com", hash_password("admin123"), "System Admin", "admin"))
+        created.append("admin (admin/admin123)")
+
+    operators = [
+        ("operator_a", "Operator Tangki A", "operator"),
+        ("operator_b", "Operator Tangki B", "operator"),
+        ("operator_c", "Operator Tangki C", "operator"),
+    ]
+    for username, full_name, role in operators:
+        existing = query_one("SELECT id FROM users WHERE username = %s", (username,))
+        if not existing:
+            execute("""
+                INSERT INTO users (username, email, password_hash, full_name, role)
+                VALUES (%s, %s, %s, %s, %s)
+            """, (username, f"{username}@greenfields.com", hash_password("operator"), full_name, role))
+            created.append(f"{full_name} ({username}/operator)")
+
+    if not created:
+        return {"message": "All users already exist"}
+    return {"message": f"Created: {', '.join(created)}"}

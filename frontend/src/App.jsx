@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react'
 import Login from './pages/login.jsx'
 import Dashboard from './pages/dashboard.jsx'
 import Incidents from './pages/incidents.jsx'
+import ManageUsers from './pages/ManageUsers.jsx'
 import Sidebar from './components/sidebar.jsx'
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token'))
@@ -27,8 +28,9 @@ function App() {
                onToggle={() => setSidebarOpen(!sidebarOpen)} />
       <main className="flex-1 overflow-auto">
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/incidents" element={<Incidents />} />
+          <Route path="/" element={<Dashboard user={user} />} />
+          <Route path="/incidents" element={<Incidents user={user} />} />
+          <Route path="/manage-users" element={<ManageUsers user={user} />} />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

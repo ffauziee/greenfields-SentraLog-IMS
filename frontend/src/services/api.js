@@ -28,3 +28,10 @@ export const incidentsAPI = {
   update: (id, data) => api.put(`/incidents/${id}`, data),
   delete: (id) => api.delete(`/incidents/${id}`),
 }
+export const usersAPI = {
+  list: (params) => api.get('/users', { params }),
+  create: (data) => api.post('/users', data),
+  update: (id, data) => api.put(`/users/${id}`, data),
+  resetPassword: (id, data) => api.put(`/users/${id}/reset-password`, data),
+  delete: (id) => api.delete(`/users/${id}`),
+}
