@@ -4,5 +4,9 @@ __pycache__/
 *.pyo
 .venv/
 .env
-
+scripts/
+deliverables/
 docs/
+backend/app/migration
+AGENTS.md
+

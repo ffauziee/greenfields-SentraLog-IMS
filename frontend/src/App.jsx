@@ -8,6 +8,14 @@ import ActivityLog from './pages/ActivityLog.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import { cn } from './lib/cn'
 
+function hasAdminAccess(user) {
+  return user?.role === 'superadmin' || user?.role === 'admin'
+}
+
+function AdminRoute({ user, children }) {
+  return hasAdminAccess(user) ? children : <Navigate to="/" replace />
+}
+
 /** Root App: auth state, routing, sidebar layout */
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'))
@@ -41,9 +49,18 @@ export default function App() {
       <main className="flex-1 overflow-auto">
         <Routes>
           <Route path="/" element={<Dashboard user={user} />} />
-          <Route path="/incidents" element={<Incidents user={user} />} />
-          <Route path="/manage-users" element={<ManageUsers user={user} />} />
-          <Route path="/activity-log" element={<ActivityLog />} />
+          <Route path="/incidents" element={<Incidents key="all" user={user} />} />
+          <Route path="/my-incidents" element={<Incidents key="mine" user={user} myIncidents />} />
+          <Route path="/manage-users" element={
+            <AdminRoute user={user}>
+              <ManageUsers user={user} />
+            </AdminRoute>
+          } />
+          <Route path="/activity-log" element={
+            <AdminRoute user={user}>
+              <ActivityLog />
+            </AdminRoute>
+          } />
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </main>

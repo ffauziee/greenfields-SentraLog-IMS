@@ -1,14 +1,16 @@
-import { useState, useEffect, useCallback } from 'react'
-import { auditAPI, usersAPI } from '../services/api'
+import { useState, useEffect, useCallback, useMemo, memo, Fragment } from 'react'
+import { auditAPI } from '../services/api'
 import { cn } from '../lib/cn'
 import Toast from '../components/Toast'
 
-export default function ActivityLog() {
+let cachedUsers = null
+
+const ActivityLog = memo(function ActivityLog() {
   const [logs, setLogs] = useState([])
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState(cachedUsers || [])
   const [filterUser, setFilterUser] = useState('')
   const [filterAction, setFilterAction] = useState('')
   const [expandId, setExpandId] = useState(null)
@@ -32,9 +34,11 @@ export default function ActivityLog() {
   useEffect(() => { fetchLogs() }, [fetchLogs])
 
   useEffect(() => {
-    auditAPI.users()
-      .then(res => setUsers(res.data))
-      .catch(() => {})
+    if (!cachedUsers) {
+      auditAPI.users()
+        .then(res => { cachedUsers = res.data; setUsers(res.data) })
+        .catch(() => { })
+    }
   }, [])
 
   const actionBadge = (action) => {
@@ -52,7 +56,7 @@ export default function ActivityLog() {
     }
   }
 
-  const totalPages = Math.ceil(total / limit)
+  const totalPages = useMemo(() => Math.ceil(total / limit), [total])
 
   return (
     <div className="p-6">
@@ -62,14 +66,14 @@ export default function ActivityLog() {
 
       <div className="flex gap-3 mb-6">
         <select value={filterUser} onChange={e => { setFilterUser(e.target.value); setPage(1) }}
-                className="px-4 py-2 border rounded-lg outline-none">
+          className="px-4 py-2 border rounded-lg outline-none">
           <option value="">All Users</option>
           {users.map(u => (
             <option key={u.id} value={u.id}>{u.full_name} ({u.username})</option>
           ))}
         </select>
         <select value={filterAction} onChange={e => { setFilterAction(e.target.value); setPage(1) }}
-                className="px-4 py-2 border rounded-lg outline-none">
+          className="px-4 py-2 border rounded-lg outline-none">
           <option value="">All Actions</option>
           <option value="CREATE">CREATE</option>
           <option value="UPDATE">UPDATE</option>
@@ -96,8 +100,8 @@ export default function ActivityLog() {
             ) : logs.length === 0 ? (
               <tr><td colSpan="6" className="p-6 text-center text-gray-500">No audit logs found</td></tr>
             ) : logs.map(log => (
-              <>
-                <tr key={log.id} className={cn('border-t hover:bg-gray-50 cursor-pointer')} onClick={() => setExpandId(expandId === log.id ? null : log.id)}>
+              <Fragment key={log.id}>
+                <tr className={cn('border-t hover:bg-gray-50 cursor-pointer')} onClick={() => setExpandId(expandId === log.id ? null : log.id)}>
                   <td className="p-3 text-sm">{new Date(log.created_at).toLocaleString()}</td>
                   <td className="p-3 text-sm">{log.username}</td>
                   <td className="p-3">{actionBadge(log.action)}</td>
@@ -121,7 +125,7 @@ export default function ActivityLog() {
                     </td>
                   </tr>
                 )}
-              </>
+              </Fragment>
             ))}
           </tbody>
         </table>
@@ -130,12 +134,14 @@ export default function ActivityLog() {
       {totalPages > 1 && (
         <div className="flex justify-center gap-2 mt-4">
           <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-                  className={cn('px-3 py-1 border rounded', page <= 1 && 'disabled:opacity-50')}>Prev</button>
+            className={cn('px-3 py-1 border rounded', page <= 1 && 'disabled:opacity-50')}>Prev</button>
           <span className="px-3 py-1">{page} / {totalPages}</span>
           <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-                  className={cn('px-3 py-1 border rounded', page >= totalPages && 'disabled:opacity-50')}>Next</button>
+            className={cn('px-3 py-1 border rounded', page >= totalPages && 'disabled:opacity-50')}>Next</button>
         </div>
       )}
     </div>
   )
-}
+})
+
+export default ActivityLog

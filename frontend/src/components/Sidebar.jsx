@@ -1,14 +1,16 @@
+import { memo } from 'react'
 import { NavLink } from 'react-router-dom'
-import { CircleGauge, Zap, Users, ChevronLeft, History } from 'lucide-react'
+import { CircleGauge, Zap, Users, ChevronLeft, History, UserCheck } from 'lucide-react'
 import { cn } from '../lib/cn'
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', Icon: CircleGauge },
   { path: '/incidents', label: 'Incidents', Icon: Zap },
+  { path: '/my-incidents', label: 'My Incidents', Icon: UserCheck },
 ]
 
-export default function Sidebar({ user, onLogout, collapsed, onToggle }) {
-  const isAdmin = user?.role === 'admin'
+const Sidebar = memo(function Sidebar({ user, onLogout, collapsed, onToggle }) {
+  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
 
   const linkBase = 'flex items-center h-10 rounded-md text-sm whitespace-nowrap transition-colors duration-150 mx-2'
   const linkSpacing = collapsed ? 'justify-center' : 'gap-3 px-3'
@@ -26,7 +28,7 @@ export default function Sidebar({ user, onLogout, collapsed, onToggle }) {
           GREENFIELDS IMS
         </span>
         <button onClick={onToggle} className={cn('text-slate-400 hover:text-white transition-transform duration-200 shrink-0', !collapsed && 'ml-auto')}
-                style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          style={{ transform: collapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}>
           <ChevronLeft size={16} />
         </button>
       </div>
@@ -76,4 +78,6 @@ export default function Sidebar({ user, onLogout, collapsed, onToggle }) {
       </div>
     </div>
   )
-}
+})
+
+export default Sidebar

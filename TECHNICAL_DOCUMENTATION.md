@@ -27,24 +27,24 @@ Greenfields IMS (Incident Management System) is a full-stack web application for
 
 ### 1.2 Core Objectives
 
-| Objective | Description |
-|---|---|
-| **Incident Lifecycle Management** | End-to-end tracking from creation through resolution and archival |
-| **Role-Based Access Control** | Admin (full visibility) and Operator (scoped to assigned incidents) |
-| **Severity Prioritisation** | Attention Score algorithm (0–100) to surface most critical items first |
-| **Audit Compliance** | Immutable logs of every CREATE/UPDATE/DELETE action |
-| **SLA Enforcement** | Automated breach detection per severity level with escalation triggers |
+| Objective                         | Description                                                                    |
+| --------------------------------- | ------------------------------------------------------------------------------ |
+| **Incident Lifecycle Management** | End-to-end tracking from creation through resolution and archival              |
+| **Role-Based Access Control**     | Superadmin/Admin (full visibility) and Operator (scoped to assigned incidents) |
+| **Severity Prioritisation**       | Attention Score algorithm (0–100) to surface most critical items first         |
+| **Audit Compliance**              | Immutable logs of every CREATE/UPDATE/DELETE action                            |
+| **SLA Enforcement**               | Automated breach detection per severity level with escalation triggers         |
 
 ### 1.3 Operational Problems Solved
 
-| Problem | Solution |
-|---|---|
-| Operators lack visibility into priority | Attention Score ranks incidents by severity, age, and SLA breach |
-| No accountability trail | Every mutation is logged with old/new state snapshots |
-| Ad-hoc incident reporting | Structured form with severity, location, and assignment fields |
-| Delayed response to critical issues | Dashboard surfaces CRITICAL/HIGH incidents past SLA |
-| Hard audit for compliance | Admin-only audit log viewer with filterable, paginated history |
-| Fragmented user management | Centralised user CRUD with active/inactive state and role assignment |
+| Problem                                 | Solution                                                             |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| Operators lack visibility into priority | Attention Score ranks incidents by severity, age, and SLA breach     |
+| No accountability trail                 | Every mutation is logged with old/new state snapshots                |
+| Ad-hoc incident reporting               | Structured form with severity, location, and assignment fields       |
+| Delayed response to critical issues     | Dashboard surfaces CRITICAL/HIGH incidents past SLA                  |
+| Hard audit for compliance               | Admin-only audit log viewer with filterable, paginated history       |
+| Fragmented user management              | Centralised user CRUD with active/inactive state and role assignment |
 
 ### 1.4 Key Features
 
@@ -61,13 +61,13 @@ Greenfields IMS (Incident Management System) is a full-stack web application for
 
 ### 1.5 Business Impact
 
-| Metric | Impact |
-|---|---|
-| Mean Time to Acknowledge (MTTA) | Reduced by attention-prioritised queue |
-| Audit Readiness | Full traceability for compliance audits |
-| Operator Accountability | Incidents scoped per operator tank assignment |
-| Data Integrity | Soft-delete prevents accidental data loss |
-| Deployment Cost | Runs on 1 CPU / 2 GB RAM VM with minimal dependencies |
+| Metric                          | Impact                                                |
+| ------------------------------- | ----------------------------------------------------- |
+| Mean Time to Acknowledge (MTTA) | Reduced by attention-prioritised queue                |
+| Audit Readiness                 | Full traceability for compliance audits               |
+| Operator Accountability         | Incidents scoped per operator tank assignment         |
+| Data Integrity                  | Soft-delete prevents accidental data loss             |
+| Deployment Cost                 | Runs on 1 CPU / 2 GB RAM VM with minimal dependencies |
 
 ---
 
@@ -100,22 +100,22 @@ frontend/
 
 **State Management Approach:**
 
-| State | Location | Persistence |
-|---|---|---|
-| Auth token | `App.jsx` + `localStorage` | Survives browser close |
-| User profile | `App.jsx` + `localStorage` | Survives browser close |
-| Sidebar open/closed | `App.jsx` `useState` | Session-only |
-| Page data | Per-component `useState` | Fetched on mount |
+| State               | Location                   | Persistence            |
+| ------------------- | -------------------------- | ---------------------- |
+| Auth token          | `App.jsx` + `localStorage` | Survives browser close |
+| User profile        | `App.jsx` + `localStorage` | Survives browser close |
+| Sidebar open/closed | `App.jsx` `useState`       | Session-only           |
+| Page data           | Per-component `useState`   | Fetched on mount       |
 
 **Routing Table:**
 
-| Path | Component | Guard |
-|---|---|---|
-| `/` | Dashboard | Authenticated |
-| `/incidents` | Incidents | Authenticated |
-| `/manage-users` | ManageUsers | Admin only |
-| `/activity-log` | ActivityLog | Admin only |
-| `*` | Redirect `/` | — |
+| Path            | Component    | Guard         |
+| --------------- | ------------ | ------------- |
+| `/`             | Dashboard    | Authenticated |
+| `/incidents`    | Incidents    | Authenticated |
+| `/manage-users` | ManageUsers  | Admin only    |
+| `/activity-log` | ActivityLog  | Admin only    |
+| `*`             | Redirect `/` | —             |
 
 **API Layer:** A single Axios instance (`api.js`) attaches the JWT `Authorization` header via a request interceptor. A response interceptor catches 401s, clears `localStorage`, and forces a page reload to return to the login screen.
 
@@ -145,14 +145,14 @@ backend/
 
 **Layer Responsibilities:**
 
-| Layer | Directory | Responsibility |
-|---|---|---|
-| **Router** | `api/` | HTTP endpoint handlers, parameter validation, response formatting |
-| **Core** | `core/` | Configuration, environment variables, application constants |
-| **Database** | `db/` | Threaded connection pool, `query_all`/`query_one`/`execute` abstractions |
-| **Schema** | `schemas/` | Pydantic models for request validation and response serialisation |
-| **Service** | `services/` | Business logic (attention scoring, audit logging) |
-| **Utility** | `utils/` | Cross-cutting concerns (auth, hashing) |
+| Layer        | Directory   | Responsibility                                                           |
+| ------------ | ----------- | ------------------------------------------------------------------------ |
+| **Router**   | `api/`      | HTTP endpoint handlers, parameter validation, response formatting        |
+| **Core**     | `core/`     | Configuration, environment variables, application constants              |
+| **Database** | `db/`       | Threaded connection pool, `query_all`/`query_one`/`execute` abstractions |
+| **Schema**   | `schemas/`  | Pydantic models for request validation and response serialisation        |
+| **Service**  | `services/` | Business logic (attention scoring, audit logging)                        |
+| **Utility**  | `utils/`    | Cross-cutting concerns (auth, hashing)                                   |
 
 **Design Decisions:**
 
@@ -215,22 +215,22 @@ backend/
 
 **severity_levels:**
 
-| id | name | colour | level | sla_hours |
-|---|---|---|---|---|
-| 1 | LOW | `#22c55e` | 1 | *configurable* |
-| 2 | MEDIUM | `#eab308` | 2 | *configurable* |
-| 3 | HIGH | `#f97316` | 3 | 24 |
-| 4 | CRITICAL | `#ef4444` | 4 | 4 |
+| id  | name     | colour    | level | sla_hours      |
+| --- | -------- | --------- | ----- | -------------- |
+| 1   | LOW      | `#22c55e` | 1     | _configurable_ |
+| 2   | MEDIUM   | `#eab308` | 2     | _configurable_ |
+| 3   | HIGH     | `#f97316` | 3     | 24             |
+| 4   | CRITICAL | `#ef4444` | 4     | 4              |
 
 **incident_statuses:**
 
-| id | name |
-|---|---|
-| 1 | OPEN |
-| 2 | IN_PROGRESS |
-| 3 | RESOLVED |
-| 4 | CLOSED |
-| 5 | ESCALATED |
+| id  | name        |
+| --- | ----------- |
+| 1   | OPEN        |
+| 2   | IN_PROGRESS |
+| 3   | RESOLVED    |
+| 4   | CLOSED      |
+| 5   | ESCALATED   |
 
 **Status Transition Rules:**
 
@@ -338,13 +338,13 @@ The Attention Score algorithm (`backend/app/services/attention.py`) computes a 0
 def calculate_attention_score(incident: dict, age_hours: float) -> int:
 ```
 
-| Component | Max Points | Logic |
-|---|---|---|
-| **Severity Weight** | 40 | LOW=10, MEDIUM=20, HIGH=30, CRITICAL=40 |
-| **SLA Breach** | 30 | `min((age - sla) / sla, 1.0) * 30` — linear ramp from breach to 100% over-SLA |
-| **Recency** | 20 | ≤1h = 20, ≤4h = 15, ≤12h = 10, ≤24h = 5, >24h = 0 |
-| **Status** | 10 | OPEN = 10, ESCALATED = 8, IN_PROGRESS = 5, others = 0 |
-| **Total** | **100** | Capped at `min(score, 100)` |
+| Component           | Max Points | Logic                                                                         |
+| ------------------- | ---------- | ----------------------------------------------------------------------------- |
+| **Severity Weight** | 40         | LOW=10, MEDIUM=20, HIGH=30, CRITICAL=40                                       |
+| **SLA Breach**      | 30         | `min((age - sla) / sla, 1.0) * 30` — linear ramp from breach to 100% over-SLA |
+| **Recency**         | 20         | ≤1h = 20, ≤4h = 15, ≤12h = 10, ≤24h = 5, >24h = 0                             |
+| **Status**          | 10         | OPEN = 10, ESCALATED = 8, IN_PROGRESS = 5, others = 0                         |
+| **Total**           | **100**    | Capped at `min(score, 100)`                                                   |
 
 #### Dashboard Query Ordering
 
@@ -399,26 +399,26 @@ User Action        API Handler                    Service Layer            Postg
 
 #### Audit Log Schema
 
-| Column | Type | Description |
-|---|---|---|
-| `id` | UUID/SERIAL | Primary key |
-| `user_id` | UUID (FK → users) | Who performed the action |
-| `action` | VARCHAR | One of: `CREATE`, `UPDATE`, `DELETE` |
-| `entity_type` | VARCHAR | Currently always `"incident"` |
-| `entity_id` | VARCHAR | The incident ID |
-| `old_value` | JSONB | Full row snapshot before the mutation (`NULL` for CREATE) |
-| `new_value` | JSONB | Changed fields after the mutation (`NULL` for DELETE) |
-| `description` | TEXT | Optional human-readable summary |
-| `ip_address` | VARCHAR | Client IP (currently not populated) |
-| `created_at` | TIMESTAMP | When the log entry was created |
+| Column        | Type              | Description                                               |
+| ------------- | ----------------- | --------------------------------------------------------- |
+| `id`          | UUID/SERIAL       | Primary key                                               |
+| `user_id`     | UUID (FK → users) | Who performed the action                                  |
+| `action`      | VARCHAR           | One of: `CREATE`, `UPDATE`, `DELETE`                      |
+| `entity_type` | VARCHAR           | Currently always `"incident"`                             |
+| `entity_id`   | VARCHAR           | The incident ID                                           |
+| `old_value`   | JSONB             | Full row snapshot before the mutation (`NULL` for CREATE) |
+| `new_value`   | JSONB             | Changed fields after the mutation (`NULL` for DELETE)     |
+| `description` | TEXT              | Optional human-readable summary                           |
+| `ip_address`  | VARCHAR           | Client IP (currently not populated)                       |
+| `created_at`  | TIMESTAMP         | When the log entry was created                            |
 
 #### Audit Data Capture Points
 
-| Endpoint | Action | old_value | new_value |
-|---|---|---|---|
-| `POST /api/incidents` | CREATE | `NULL` | `{title, severity_id, assigned_to}` |
-| `PUT /api/incidents/{id}` | UPDATE | Full SELECT * | Dict of changed fields |
-| `DELETE /api/incidents/{id}` | DELETE | Full SELECT * | `NULL` |
+| Endpoint                     | Action | old_value      | new_value                           |
+| ---------------------------- | ------ | -------------- | ----------------------------------- |
+| `POST /api/incidents`        | CREATE | `NULL`         | `{title, severity_id, assigned_to}` |
+| `PUT /api/incidents/{id}`    | UPDATE | Full SELECT \* | Dict of changed fields              |
+| `DELETE /api/incidents/{id}` | DELETE | Full SELECT \* | `NULL`                              |
 
 ---
 
@@ -529,7 +529,7 @@ erDiagram
         varchar email
         text password_hash
         varchar full_name
-        varchar role "admin | operator"
+        varchar role "superadmin | admin | operator"
         boolean is_active
         timestamp created_at
         timestamp updated_at
@@ -705,13 +705,13 @@ graph TB
 
 ### 4.1 Infrastructure Requirements
 
-| Resource | Minimum | Recommended |
-|---|---|---|
-| CPU | 1 core | 2 cores |
-| RAM | 2 GB | 4 GB |
-| Disk | 20 GB | 40 GB SSD |
-| OS | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS |
-| Network | Port 80 open | Port 80 + 443 (TLS) |
+| Resource | Minimum          | Recommended         |
+| -------- | ---------------- | ------------------- |
+| CPU      | 1 core           | 2 cores             |
+| RAM      | 2 GB             | 4 GB                |
+| Disk     | 20 GB            | 40 GB SSD           |
+| OS       | Ubuntu 22.04 LTS | Ubuntu 22.04 LTS    |
+| Network  | Port 80 open     | Port 80 + 443 (TLS) |
 
 ### 4.2 Prerequisites
 
@@ -771,7 +771,7 @@ CREATE TABLE users (
     email VARCHAR(255),
     password_hash TEXT NOT NULL,
     full_name VARCHAR(100),
-    role VARCHAR(20) NOT NULL CHECK (role IN ('admin', 'operator')),
+    role VARCHAR(20) NOT NULL CHECK (role IN ('superadmin', 'admin', 'operator')),
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
@@ -891,12 +891,12 @@ curl -s http://localhost/ | head -5
 
 ### 4.6 Default Credentials
 
-| Username | Password | Role | Full Name |
-|---|---|---|---|
-| `admin` | `admin123` | admin | System Admin |
-| `operator_a` | `operator` | operator | Operator Tangki A |
-| `operator_b` | `operator` | operator | Operator Tangki B |
-| `operator_c` | `operator` | operator | Operator Tangki C |
+| Username     | Password   | Role       | Full Name         |
+| ------------ | ---------- | ---------- | ----------------- |
+| `admin`      | `admin123` | superadmin | System Superadmin |
+| `operator_a` | `operator` | operator   | Operator Tangki A |
+| `operator_b` | `operator` | operator   | Operator Tangki B |
+| `operator_c` | `operator` | operator   | Operator Tangki C |
 
 > **Security Note:** Change the default admin password immediately after first login. The seed endpoint (`POST /api/auth/seed`) is idempotent and safe to call multiple times.
 
@@ -924,13 +924,13 @@ sudo -u postgres psql -d greenfields_audit  # Direct SQL access
 
 ### 5.2 Logging
 
-| Log Source | Location | Retention |
-|---|---|---|
-| Application | `journalctl -u greenfields-backend` | Configurable via journald |
-| Nginx Access | `/var/log/nginx/access.log` | Logrotate managed |
-| Nginx Error | `/var/log/nginx/error.log` | Logrotate managed |
-| PostgreSQL | `/var/log/postgresql/postgresql-*.log` | Logrotate managed |
-| Audit Logs | Database table `audit_logs` | Immutable (application-level) |
+| Log Source   | Location                               | Retention                     |
+| ------------ | -------------------------------------- | ----------------------------- |
+| Application  | `journalctl -u greenfields-backend`    | Configurable via journald     |
+| Nginx Access | `/var/log/nginx/access.log`            | Logrotate managed             |
+| Nginx Error  | `/var/log/nginx/error.log`             | Logrotate managed             |
+| PostgreSQL   | `/var/log/postgresql/postgresql-*.log` | Logrotate managed             |
+| Audit Logs   | Database table `audit_logs`            | Immutable (application-level) |
 
 ### 5.3 Monitoring
 
@@ -965,15 +965,15 @@ sudo -u postgres psql -d greenfields_audit < /backups/greenfields_20260521_12000
 
 ### 5.5 Troubleshooting
 
-| Symptom | Likely Cause | Diagnostic | Resolution |
-|---|---|---|---|
-| 502 Bad Gateway | Backend not running | `systemctl status greenfields-backend` | `systemctl restart greenfields-backend` |
-| 401 on all requests | Token expired or invalid | Check `localStorage` token | Re-login |
-| 403 Forbidden | Role mismatch | Verify `current_user["role"]` in logs | Check user role in DB |
-| Database connection errors | PostgreSQL down or pool exhausted | `systemctl status postgresql`; check `pg_stat_activity` | `systemctl restart postgresql` |
-| Static files 404 | Frontend not built | Check `/opt/greenfields/frontend/dist/` exists | Run `npm run build` |
-| Login rate limited | 5 req/min exceeded | Check Nginx `limit_req` logs in error log | Wait or adjust `rate=` in Nginx config |
-| Slow dashboard | No indexes on large tables | `EXPLAIN ANALYZE` on dashboard queries | Verify indexes from schema migration |
+| Symptom                    | Likely Cause                      | Diagnostic                                              | Resolution                              |
+| -------------------------- | --------------------------------- | ------------------------------------------------------- | --------------------------------------- |
+| 502 Bad Gateway            | Backend not running               | `systemctl status greenfields-backend`                  | `systemctl restart greenfields-backend` |
+| 401 on all requests        | Token expired or invalid          | Check `localStorage` token                              | Re-login                                |
+| 403 Forbidden              | Role mismatch                     | Verify `current_user["role"]` in logs                   | Check user role in DB                   |
+| Database connection errors | PostgreSQL down or pool exhausted | `systemctl status postgresql`; check `pg_stat_activity` | `systemctl restart postgresql`          |
+| Static files 404           | Frontend not built                | Check `/opt/greenfields/frontend/dist/` exists          | Run `npm run build`                     |
+| Login rate limited         | 5 req/min exceeded                | Check Nginx `limit_req` logs in error log               | Wait or adjust `rate=` in Nginx config  |
+| Slow dashboard             | No indexes on large tables        | `EXPLAIN ANALYZE` on dashboard queries                  | Verify indexes from schema migration    |
 
 ---
 
@@ -981,45 +981,45 @@ sudo -u postgres psql -d greenfields_audit < /backups/greenfields_20260521_12000
 
 ### 6.1 Authentication Security
 
-| Control | Implementation |
-|---|---|
-| Password hashing | bcrypt via `passlib[bcrypt]` with auto-generated salt |
-| JWT signing | HS256 with configurable `SECRET_KEY` |
-| Token expiry | 480 minutes (configurable) |
-| Inactive user rejection | `get_current_user` checks `is_active` flag |
-| Rate limiting | Nginx `limit_req_zone` — 5 requests/minute per IP on `/api/auth/login` |
+| Control                 | Implementation                                                         |
+| ----------------------- | ---------------------------------------------------------------------- |
+| Password hashing        | bcrypt via `passlib[bcrypt]` with auto-generated salt                  |
+| JWT signing             | HS256 with configurable `SECRET_KEY`                                   |
+| Token expiry            | 480 minutes (configurable)                                             |
+| Inactive user rejection | `get_current_user` checks `is_active` flag                             |
+| Rate limiting           | Nginx `limit_req_zone` — 5 requests/minute per IP on `/api/auth/login` |
 
 ### 6.2 Data Protection
 
-| Control | Implementation |
-|---|---|
-| SQL injection prevention | Parameterised queries via psycopg2 (`%s` placeholders) |
-| Soft delete | `is_deleted` flag on incidents; no data loss |
-| Audit immutability | Audit logs are INSERT-only; no UPDATE/DELETE endpoints exist |
-| Input validation | Pydantic models with length, range, and pattern constraints |
-| CORS | Whitelist origins: `localhost:5173`, `localhost:3000` |
+| Control                  | Implementation                                               |
+| ------------------------ | ------------------------------------------------------------ |
+| SQL injection prevention | Parameterised queries via psycopg2 (`%s` placeholders)       |
+| Soft delete              | `is_deleted` flag on incidents; no data loss                 |
+| Audit immutability       | Audit logs are INSERT-only; no UPDATE/DELETE endpoints exist |
+| Input validation         | Pydantic models with length, range, and pattern constraints  |
+| CORS                     | Whitelist origins: `localhost:5173`, `localhost:3000`        |
 
 ### 6.3 Infrastructure Security
 
-| Control | Implementation |
-|---|---|
-| systemd hardening | `NoNewPrivileges=true`, `PrivateTmp=true`, `ProtectSystem=strict`, `ProtectHome=true` |
-| File permissions | `.env` is `chmod 600` owned by `greenfields` user |
-| Hidden file blocking | Nginx denies all `/.` paths |
-| Reverse proxy isolation | Backend listens on `127.0.0.1:8000` only; no direct external access |
-| Read-only paths | `ReadWritePaths=/opt/greenfields/backend` limits write scope |
+| Control                 | Implementation                                                                        |
+| ----------------------- | ------------------------------------------------------------------------------------- |
+| systemd hardening       | `NoNewPrivileges=true`, `PrivateTmp=true`, `ProtectSystem=strict`, `ProtectHome=true` |
+| File permissions        | `.env` is `chmod 600` owned by `greenfields` user                                     |
+| Hidden file blocking    | Nginx denies all `/.` paths                                                           |
+| Reverse proxy isolation | Backend listens on `127.0.0.1:8000` only; no direct external access                   |
+| Read-only paths         | `ReadWritePaths=/opt/greenfields/backend` limits write scope                          |
 
 ### 6.4 Audit Trail Compliance
 
 The `audit_logs` table provides a full non-repudiation trail:
 
-| Requirement | Coverage |
-|---|---|
-| Who performed the action | `user_id` with join to `users.username` |
-| What action was performed | `action` column (CREATE/UPDATE/DELETE) |
-| What changed | `old_value` + `new_value` JSONB snapshots |
-| When it happened | `created_at` with UTC timestamps |
-| On which entity | `entity_type` + `entity_id` |
+| Requirement               | Coverage                                  |
+| ------------------------- | ----------------------------------------- |
+| Who performed the action  | `user_id` with join to `users.username`   |
+| What action was performed | `action` column (CREATE/UPDATE/DELETE)    |
+| What changed              | `old_value` + `new_value` JSONB snapshots |
+| When it happened          | `created_at` with UTC timestamps          |
+| On which entity           | `entity_type` + `entity_id`               |
 
 ---
 
@@ -1027,32 +1027,34 @@ The `audit_logs` table provides a full non-repudiation trail:
 
 ### 7.1 Current Configuration
 
-| Parameter | Value | Rationale |
-|---|---|---|
-| Uvicorn workers | 2 | Matches 1 CPU core (2 workers per core) |
-| Connection pool min | 2 | Keep-alive for frequent queries |
-| Connection pool max | 10 | Headroom for concurrent requests |
-| `--limit-concurrency` | 100 | Prevents thundering herd |
-| `--backlog` | 2044 | TCP listen queue depth |
-| Nginx `worker_processes` | auto (1) | Single core |
-| `LimitNOFILE` | 65536 | File descriptor ceiling for connections |
+| Parameter                | Value    | Rationale                               |
+| ------------------------ | -------- | --------------------------------------- |
+| Uvicorn workers          | 2        | Matches 1 CPU core (2 workers per core) |
+| Connection pool min      | 2        | Keep-alive for frequent queries         |
+| Connection pool max      | 10       | Headroom for concurrent requests        |
+| `--limit-concurrency`    | 100      | Prevents thundering herd                |
+| `--backlog`              | 2044     | TCP listen queue depth                  |
+| Nginx `worker_processes` | auto (1) | Single core                             |
+| `LimitNOFILE`            | 65536    | File descriptor ceiling for connections |
 
 ### 7.2 Identified Bottlenecks
 
-| Bottleneck | Impact | Mitigation |
-|---|---|---|
-| Raw SQL without query builder | Manual SQL maintenance | Acceptable for current schema size |
-| Attention score computed in Python | CPU cost per dashboard load | Caching layer or move to SQL window function |
-| No Redis cache | Repeated dashboard queries hit DB each time | Add Redis for dashboard aggregation caching |
-| Single-server architecture | No horizontal redundancy | Add Nginx upstream servers + read replicas |
+| Bottleneck                         | Impact                                      | Mitigation                                   |
+| ---------------------------------- | ------------------------------------------- | -------------------------------------------- |
+| Raw SQL without query builder      | Manual SQL maintenance                      | Acceptable for current schema size           |
+| Attention score computed in Python | CPU cost per dashboard load                 | Caching layer or move to SQL window function |
+| No Redis cache                     | Repeated dashboard queries hit DB each time | Add Redis for dashboard aggregation caching  |
+| Single-server architecture         | No horizontal redundancy                    | Add Nginx upstream servers + read replicas   |
 
 ### 7.3 Scaling Strategy
 
 **Vertical (immediate):**
+
 - Increase VM to 2 CPU / 4 GB RAM
 - Increase `--workers 4` and `maxconn=20`
 
 **Horizontal (future):**
+
 - Deploy additional Uvicorn instances on ports 8001, 8002
 - Uncomment upstream servers in `greenfields.conf`
 - Add a load balancer (HAProxy or AWS ALB) in front of Nginx
@@ -1060,6 +1062,7 @@ The `audit_logs` table provides a full non-repudiation trail:
 - Add Redis for session caching and dashboard aggregation
 
 **Read Scalability:**
+
 - Add PostgreSQL read replicas for dashboard queries
 - Route read-only queries to replicas via a connection pooler (PgBouncer)
 
@@ -1111,11 +1114,11 @@ The `audit_logs` table provides a full non-repudiation trail:
 
 ### 8.2 Environment Variables Reference
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `DATABASE_URL` | Yes | `postgresql://postgres:postgres@localhost:5432/greenfields_audit` | PostgreSQL connection string |
-| `SECRET_KEY` | Yes | `ganti-ini-dengan-random-string-panjang` | JWT signing secret (change immediately) |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | No | `480` | JWT lifetime in minutes |
+| Variable                      | Required | Default                                                           | Description                             |
+| ----------------------------- | -------- | ----------------------------------------------------------------- | --------------------------------------- |
+| `DATABASE_URL`                | Yes      | `postgresql://postgres:postgres@localhost:5432/greenfields_audit` | PostgreSQL connection string            |
+| `SECRET_KEY`                  | Yes      | `ganti-ini-dengan-random-string-panjang`                          | JWT signing secret (change immediately) |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` | No       | `480`                                                             | JWT lifetime in minutes                 |
 
 ### 8.3 Frontend Build Configuration
 
@@ -1126,10 +1129,10 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
-      '/api': 'http://localhost:8000'  // Dev proxy only
-    }
-  }
-})
+      "/api": "http://localhost:8000", // Dev proxy only
+    },
+  },
+});
 ```
 
 In production, the Vite proxy is not used. Nginx serves the built `dist/` directory as static files and reverse-proxies `/api/` to Uvicorn.
@@ -1240,39 +1243,39 @@ limit_req_zone $binary_remote_addr zone=login:10m rate=5r/m;
 
 ### 8.6 API Endpoint Summary
 
-| Method | Path | Auth | Role | Description |
-|---|---|---|---|---|
-| GET | `/health` | None | — | Health check |
-| POST | `/api/auth/login` | None | — | User login |
-| POST | `/api/auth/seed` | None | — | Seed default users |
-| GET | `/api/incidents/dashboard` | JWT | All | Dashboard aggregates |
-| GET | `/api/incidents` | JWT | All | List incidents (filtered + paginated) |
-| GET | `/api/incidents/export` | JWT | All | Export as CSV |
-| GET | `/api/incidents/{id}` | JWT | All | Get single incident |
-| POST | `/api/incidents` | JWT | All | Create incident |
-| PUT | `/api/incidents/{id}` | JWT | All | Update incident |
-| DELETE | `/api/incidents/{id}` | JWT | All | Soft-delete incident |
-| GET | `/api/users` | JWT | Admin | List users |
-| POST | `/api/users` | JWT | Admin | Create user |
-| PUT | `/api/users/{id}` | JWT | Admin | Update user |
-| PUT | `/api/users/{id}/reset-password` | JWT | Admin | Reset password |
-| DELETE | `/api/users/{id}` | JWT | Admin | Delete/deactivate user |
-| GET | `/api/audit-logs` | JWT | Admin | List audit logs |
-| GET | `/api/audit-logs/users` | JWT | Admin | Distinct audit users |
+| Method | Path                             | Auth | Role  | Description                           |
+| ------ | -------------------------------- | ---- | ----- | ------------------------------------- |
+| GET    | `/health`                        | None | —     | Health check                          |
+| POST   | `/api/auth/login`                | None | —     | User login                            |
+| POST   | `/api/auth/seed`                 | None | —     | Seed default users                    |
+| GET    | `/api/incidents/dashboard`       | JWT  | All   | Dashboard aggregates                  |
+| GET    | `/api/incidents`                 | JWT  | All   | List incidents (filtered + paginated) |
+| GET    | `/api/incidents/export`          | JWT  | All   | Export as CSV                         |
+| GET    | `/api/incidents/{id}`            | JWT  | All   | Get single incident                   |
+| POST   | `/api/incidents`                 | JWT  | All   | Create incident                       |
+| PUT    | `/api/incidents/{id}`            | JWT  | All   | Update incident                       |
+| DELETE | `/api/incidents/{id}`            | JWT  | All   | Soft-delete incident                  |
+| GET    | `/api/users`                     | JWT  | Admin | List users                            |
+| POST   | `/api/users`                     | JWT  | Admin | Create user                           |
+| PUT    | `/api/users/{id}`                | JWT  | Admin | Update user                           |
+| PUT    | `/api/users/{id}/reset-password` | JWT  | Admin | Reset password                        |
+| DELETE | `/api/users/{id}`                | JWT  | Admin | Delete/deactivate user                |
+| GET    | `/api/audit-logs`                | JWT  | Admin | List audit logs                       |
+| GET    | `/api/audit-logs/users`          | JWT  | Admin | Distinct audit users                  |
 
 ### 8.7 Glossary
 
-| Term | Definition |
-|---|---|
-| **Attention Score** | A 0–100 computed priority score based on severity, SLA breach, age, and status |
-| **SLA** | Service Level Agreement — time threshold within which an incident should be addressed |
-| **RBAC** | Role-Based Access Control — two roles: `admin` (full access) and `operator` (scoped) |
-| **Soft Delete** | Marking a record as deleted (`is_deleted = TRUE`) without physically removing it |
-| **JWT** | JSON Web Token — stateless authentication token signed with HS256 |
-| **JSONB** | PostgreSQL binary JSON column type used for audit log snapshots |
-| **Connection Pool** | A cache of database connections maintained to avoid connection overhead per request |
-| **systemd** | Linux init system used for process supervision and lifecycle management |
+| Term                | Definition                                                                                                              |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| **Attention Score** | A 0–100 computed priority score based on severity, SLA breach, age, and status                                          |
+| **SLA**             | Service Level Agreement — time threshold within which an incident should be addressed                                   |
+| **RBAC**            | Role-Based Access Control — roles: `superadmin` (protected full access), `admin` (full access), and `operator` (scoped) |
+| **Soft Delete**     | Marking a record as deleted (`is_deleted = TRUE`) without physically removing it                                        |
+| **JWT**             | JSON Web Token — stateless authentication token signed with HS256                                                       |
+| **JSONB**           | PostgreSQL binary JSON column type used for audit log snapshots                                                         |
+| **Connection Pool** | A cache of database connections maintained to avoid connection overhead per request                                     |
+| **systemd**         | Linux init system used for process supervision and lifecycle management                                                 |
 
 ---
 
-*End of Technical Documentation — Greenfields IMS v1.0.0*
+_End of Technical Documentation — Greenfields IMS v1.0.0_

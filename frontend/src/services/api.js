@@ -22,7 +22,7 @@ export const authAPI = {
 }
 export const incidentsAPI = {
   dashboard: () => api.get('/incidents/dashboard'),
-  list: (params) => api.get('/incidents', { params }),
+  list: (params, config) => api.get('/incidents', { params, ...config }),
   get: (id) => api.get(`/incidents/${id}`),
   create: (data) => api.post('/incidents', data),
   update: (id, data) => api.put(`/incidents/${id}`, data),

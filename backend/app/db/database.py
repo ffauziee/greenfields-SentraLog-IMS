@@ -1,22 +1,26 @@
+from contextlib import contextmanager
+
 import psycopg2
 import psycopg2.extras
 import psycopg2.pool
-from contextlib import contextmanager
+
 from ..core.config import get_settings
 
 settings = get_settings()
 
 _pool = None
 
+
 def get_pool():
     global _pool
     if _pool is None:
         _pool = psycopg2.pool.ThreadedConnectionPool(
-            minconn=2,
-            maxconn=10,
+            minconn=settings.DB_POOL_MIN,
+            maxconn=settings.DB_POOL_MAX,
             dsn=settings.DATABASE_URL,
         )
     return _pool
+
 
 @contextmanager
 def get_db():
@@ -30,12 +34,14 @@ def get_db():
     finally:
         get_pool().putconn(conn)
 
+
 def query_all(sql: str, params: tuple = None):
     """Execute a SELECT query and return all matching rows as dicts."""
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
             cur.execute(sql, params)
             return cur.fetchall()
+
 
 def query_one(sql: str, params: tuple = None):
     """Execute a SELECT query and return the first matching row as a dict."""
@@ -44,12 +50,14 @@ def query_one(sql: str, params: tuple = None):
             cur.execute(sql, params)
             return cur.fetchone()
 
+
 def execute(sql: str, params: tuple = None):
     """Execute an INSERT/UPDATE/DELETE query and return the number of affected rows."""
     with get_db() as conn:
         with conn.cursor() as cur:
             cur.execute(sql, params)
             return cur.rowcount
+
 
 def check_db():
     """Ping the database by running SELECT 1. Returns True if reachable."""
@@ -61,6 +69,7 @@ def check_db():
         return True
     except Exception:
         return False
+
 
 def close_pool():
     """Close all connections in the connection pool."""

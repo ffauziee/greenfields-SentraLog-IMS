@@ -89,11 +89,11 @@ greenfields/
 
 ## Default Accounts
 
-| Username     | Password   | Role     |
-| ------------ | ---------- | -------- |
-| `admin`      | `admin123` | Admin    |
-| `operator_a` | `operator` | Operator |
-| `operator_b` | `operator` | Operator |
-| `operator_c` | `operator` | Operator |
+| Username     | Password   | Role       |
+| ------------ | ---------- | ---------- |
+| `admin`      | `admin123` | Superadmin |
+| `operator_a` | `operator` | Operator   |
+| `operator_b` | `operator` | Operator   |
+| `operator_c` | `operator` | Operator   |
 
 > Change default passwords immediately after first login.

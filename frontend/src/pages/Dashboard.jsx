@@ -1,15 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, memo } from 'react'
 import { incidentsAPI } from '../services/api'
 import { Link } from 'react-router-dom'
 import { cn } from '../lib/cn'
 
-export default function Dashboard({ user }) {
+const Dashboard = memo(function Dashboard({ user }) {
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [detailId, setDetailId] = useState(null)
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
-  const isAdmin = user?.role === 'admin'
 
   useEffect(() => {
     incidentsAPI.dashboard()
@@ -39,14 +38,9 @@ export default function Dashboard({ user }) {
     <div className="p-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
-        {!isAdmin && (
-          <p className="text-sm text-gray-500 bg-blue-50 px-3 py-1 rounded">
-            Showing incidents assigned to you
-          </p>
-        )}
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div className="bg-white rounded-xl shadow p-6 border-l-4 border-blue-500">
           <p className="text-sm text-gray-500">Total Open Incidents</p>
           <p className="text-3xl font-bold text-gray-800">{data?.total_open || 0}</p>
@@ -55,17 +49,14 @@ export default function Dashboard({ user }) {
           <p className="text-sm text-gray-500">Critical Incidents</p>
           <p className="text-3xl font-bold text-red-600">{data?.critical_count || 0}</p>
         </div>
-        {isAdmin ? (
-          <Link to="/incidents?tab=unassigned" className="bg-white rounded-xl shadow p-6 border-l-4 border-yellow-500 block hover:shadow-md transition-shadow">
-            <p className="text-sm text-gray-500">Unassigned Incidents</p>
-            <p className="text-3xl font-bold text-yellow-600">{data?.unassigned_count || 0}</p>
-          </Link>
-        ) : (
-          <div className="bg-white rounded-xl shadow p-6 border-l-4 border-orange-500">
-            <p className="text-sm text-gray-500">Past SLA</p>
-            <p className="text-3xl font-bold text-orange-600">{data?.past_sla?.length || 0}</p>
-          </div>
-        )}
+        <Link to="/incidents?tab=unassigned" className="bg-white rounded-xl shadow p-6 border-l-4 border-yellow-500 block hover:shadow-md transition-shadow">
+          <p className="text-sm text-gray-500">Unassigned Incidents</p>
+          <p className="text-3xl font-bold text-yellow-600">{data?.unassigned_count || 0}</p>
+        </Link>
+        <div className="bg-white rounded-xl shadow p-6 border-l-4 border-orange-500">
+          <p className="text-sm text-gray-500">Past SLA</p>
+          <p className="text-3xl font-bold text-orange-600">{data?.past_sla_count || 0}</p>
+        </div>
       </div>
 
       <div className="bg-white rounded-xl shadow mb-8">
@@ -92,10 +83,10 @@ export default function Dashboard({ user }) {
                 const isOverdue = inc.age_hours > inc.sla_hours
                 return (
                   <tr key={inc.id}
-                      className={cn('border-t hover:bg-gray-50', inc.severity_name === 'CRITICAL' && 'bg-red-50')}>
+                    className={cn('border-t hover:bg-gray-50', inc.severity_name === 'CRITICAL' && 'bg-red-50')}>
                     <td className="p-3">
                       <div className="w-8 bg-gray-200 rounded-full text-xs text-center font-bold"
-                           style={{ color: inc.attention_score >= 70 ? '#ef4444' : inc.attention_score >= 40 ? '#f97316' : '#22c55e' }}>
+                        style={{ color: inc.attention_score >= 70 ? '#ef4444' : inc.attention_score >= 40 ? '#f97316' : '#22c55e' }}>
                         {inc.attention_score}
                       </div>
                     </td>
@@ -129,13 +120,10 @@ export default function Dashboard({ user }) {
         <div className="divide-y">
           {data?.recent?.map(inc => (
             <div key={inc.id} className="p-4 flex items-center justify-between hover:bg-gray-50">
-              <div className="flex items-center gap-3">
-                {severityBadge(inc.severity_name, inc.severity_color)}
-                <span className="font-medium">{inc.title}</span>
-                {inc.assigned_to_name && !isAdmin && (
-                  <span className="text-xs text-gray-400">(assigned to you)</span>
-                )}
-              </div>
+                <div className="flex items-center gap-3">
+                  {severityBadge(inc.severity_name, inc.severity_color)}
+                  <span className="font-medium">{inc.title}</span>
+                </div>
               <div className="flex items-center gap-3">
                 <span className="text-sm text-gray-500">{new Date(inc.created_at).toLocaleDateString()}</span>
                 <button onClick={() => setDetailId(inc.id)} className="bg-blue-600 text-white px-3 py-1 rounded text-xs hover:bg-blue-700">Detail</button>
@@ -164,7 +152,7 @@ export default function Dashboard({ user }) {
                     <h2 className="text-xl font-bold text-gray-800">{detail.title}</h2>
                   </div>
                   <button onClick={() => setDetailId(null)}
-                          className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
+                    className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
                 </div>
 
                 <div className="p-6 space-y-4">
@@ -230,4 +218,6 @@ export default function Dashboard({ user }) {
       )}
     </div>
   )
-}
+})
+
+export default Dashboard
