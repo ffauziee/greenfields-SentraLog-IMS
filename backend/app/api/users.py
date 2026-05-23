@@ -82,7 +82,7 @@ def list_users(
     if role:
         users = query_all(
             """SELECT id, username, full_name, role, is_active, created_at
-               FROM users WHERE role = %s ORDER BY full_name""",
+               FROM users WHERE role = %s AND is_active = TRUE ORDER BY full_name""",
             (role,),
         )
     else:
@@ -203,7 +203,7 @@ def reset_password(
 
 @router.delete("/{user_id}")
 def delete_user(user_id: str, current_user: dict = Depends(require_role(["admin"]))):
-    """Delete or deactivate a user. Admin only. Deactivates if user has active incidents."""
+    """Delete or deactivate a user. Admin only. Deactivates if any records reference the user."""
     if user_id == current_user["id"]:
         raise HTTPException(status_code=400, detail="Cannot delete yourself")
 
@@ -216,11 +216,17 @@ def delete_user(user_id: str, current_user: dict = Depends(require_role(["admin"
 
     ensure_admin_account_safety(existing, deleting=True)
 
-    incident_count = query_one(
-        "SELECT COUNT(*) as count FROM incidents WHERE assigned_to = %s AND is_deleted = FALSE",
-        (user_id,),
+    refs = query_one(
+        """
+        SELECT
+          COALESCE((SELECT COUNT(*) FROM incidents WHERE assigned_to = %s), 0)
+          + COALESCE((SELECT COUNT(*) FROM incidents WHERE reported_by = %s), 0)
+          + COALESCE((SELECT COUNT(*) FROM incident_comments WHERE user_id = %s), 0)
+          AS count
+        """,
+        (user_id, user_id, user_id),
     )
-    if incident_count["count"] > 0:
+    if refs["count"] > 0:
         execute(
             "UPDATE users SET is_active = FALSE, updated_at = NOW() WHERE id = %s",
             (user_id,),
@@ -231,10 +237,10 @@ def delete_user(user_id: str, current_user: dict = Depends(require_role(["admin"
             "user",
             user_id,
             dict(existing),
-            {"is_active": False, "reason": "user has assigned incidents"},
+            {"is_active": False, "reason": f"user has {refs['count']} related records"},
         )
         return {
-            "message": f"User deactivated (has {incident_count['count']} active incidents assigned)"
+            "message": f"User deactivated (has {refs['count']} related incidents/comments)"
         }
 
     execute("DELETE FROM users WHERE id = %s", (user_id,))

@@ -337,7 +337,7 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
                     onChange={e => setForm({ ...form, assigned_to: e.target.value })}
                     className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
                     <option value="">-- Unassigned --</option>
-                    {operators.map(op => (
+                    {operators.filter(op => op.is_active).map(op => (
                       <option key={op.id} value={op.id}>{op.full_name} ({op.username})</option>
                     ))}
                   </select>

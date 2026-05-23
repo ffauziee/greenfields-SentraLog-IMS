@@ -54,12 +54,13 @@ Open `http://localhost:5173` — login with `admin` / `admin123`.
 greenfields/
 ├── backend/          # FastAPI application
 │   └── app/
-│       ├── api/      # Route handlers
-│       ├── core/     # Configuration
-│       ├── db/       # Connection pool
-│       ├── schemas/  # Pydantic models
-│       ├── services/ # Business logic
-│       └── utils/    # Auth utilities
+│       ├── api/           # Route handlers (thin controllers)
+│       ├── core/          # Configuration
+│       ├── db/            # Connection pool
+│       ├── repositories/  # Data access (SQL queries, filter builder)
+│       ├── schemas/       # Pydantic models
+│       ├── services/      # Business logic
+│       └── utils/         # Auth utilities
 ├── frontend/         # React + Vite SPA
 │   └── src/
 │       ├── pages/    # Page components

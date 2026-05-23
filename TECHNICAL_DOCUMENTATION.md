@@ -127,16 +127,21 @@ backend/
 │   ├── main.py               # FastAPI app factory, CORS, router registration
 │   ├── api/
 │   │   ├── auth.py           # POST /login, POST /seed
-│   │   ├── incidents.py      # Full incident CRUD + dashboard + CSV export
+│   │   ├── incidents.py      # Thin router — delegates to service/repository
 │   │   ├── users.py          # Admin-only user CRUD + password reset
 │   │   └── audit_logs.py     # Admin-only audit log viewer
 │   ├── core/
-│   │   └── config.py         # Pydantic Settings, env loading, constants
+│   │   ├── config.py         # Pydantic Settings, env loading
+│   │   └── constants.py      # Status IDs, SLA thresholds, role constants
 │   ├── db/
 │   │   └── database.py       # Connection pool, query helpers
+│   ├── repositories/
+│   │   ├── incident_repository.py  # All incident SQL queries
+│   │   └── filters.py              # Reusable WHERE clause builder
 │   ├── schemas/
 │   │   └── incident.py       # Pydantic request/response models
 │   ├── services/
+│   │   ├── incident_service.py  # Incident business logic layer
 │   │   ├── attention.py      # Attention Score algorithm
 │   │   └── audit.py          # Audit log insertion helper
 │   └── utils/
@@ -145,14 +150,15 @@ backend/
 
 **Layer Responsibilities:**
 
-| Layer        | Directory   | Responsibility                                                           |
-| ------------ | ----------- | ------------------------------------------------------------------------ |
-| **Router**   | `api/`      | HTTP endpoint handlers, parameter validation, response formatting        |
-| **Core**     | `core/`     | Configuration, environment variables, application constants              |
-| **Database** | `db/`       | Threaded connection pool, `query_all`/`query_one`/`execute` abstractions |
-| **Schema**   | `schemas/`  | Pydantic models for request validation and response serialisation        |
-| **Service**  | `services/` | Business logic (attention scoring, audit logging)                        |
-| **Utility**  | `utils/`    | Cross-cutting concerns (auth, hashing)                                   |
+| Layer         | Directory      | Responsibility                                                           |
+| ------------- | -------------- | ------------------------------------------------------------------------ |
+| **Router**    | `api/`         | HTTP endpoint handlers, parameter validation, response formatting        |
+| **Core**      | `core/`        | Configuration, environment variables, application constants              |
+| **Database**  | `db/`          | Threaded connection pool, `query_all`/`query_one`/`execute` abstractions |
+| **Repository**| `repositories/`| Data access (SQL queries, filter builder)                                |
+| **Schema**    | `schemas/`     | Pydantic models for request validation and response serialisation        |
+| **Service**   | `services/`    | Business logic (incident CRUD, attention scoring, audit logging)         |
+| **Utility**   | `utils/`       | Cross-cutting concerns (auth, hashing)                                   |
 
 **Design Decisions:**
 
