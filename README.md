@@ -30,7 +30,7 @@ Create database and run migrations:
 
 **Windows (PowerShell):**
 ```powershell
-$env:PGPASSWORD='postgres'
+$env:PGPASSWORD='postgres' //atau sesuaikan dengan password yang dimiliki
 psql -U postgres -c "CREATE DATABASE greenfields_audit;"
 Get-ChildItem backend/app/migration/*.sql | Sort-Object Name | ForEach-Object {
     psql -U postgres -d greenfields_audit -f $_.FullName
