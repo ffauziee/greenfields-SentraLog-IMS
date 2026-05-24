@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
 import { incidentsAPI, usersAPI } from '../services/api'
 import Toast from '../components/Toast'
 import Pagination from '../components/Pagination'
+import IncidentDetail from '../components/IncidentDetail'
 import { cn } from '../lib/cn'
 import { isAdmin as checkAdmin } from '../lib/roles'
 import { useToast } from '../hooks/useToast'
@@ -50,17 +51,18 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   const [search, setSearch] = useState('')
   const [submittedSearch, setSubmittedSearch] = useState('')
   const [sevFilter, setSevFilter] = useState('')
-  const [tab, setTab] = useState(myIncidents ? 'active' : 'active')
+  const [tab, setTab] = useState('active')
   const [showExportOptions, setShowExportOptions] = useState(false)
   const [exportDateFrom, setExportDateFrom] = useState(() => {
     const d = new Date(); d.setMonth(d.getMonth() - 6); return d.toISOString().slice(0, 10)
   })
   const [exportDateTo, setExportDateTo] = useState(() => new Date().toISOString().slice(0, 10))
-  const [showModal, setShowModal] = useState(false)
-  const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '', severity_id: 1, location: '', assigned_to: '', assigned_to_name: '', status_id: 1, _originalStatus: 1, comment: '' })
+  const [showCreate, setShowCreate] = useState(false)
+  const [form, setForm] = useState({ title: '', description: '', severity_id: 1, location: '', assigned_to: '' })
   const [operators, setOperators] = useState([])
   const [loading, setLoading] = useState(true)
+  const [detailId, setDetailId] = useState(null)
+  const [refresh, setRefresh] = useState(0)
   const { toast, showToast, closeToast } = useToast()
   const limit = 20
   const abortRef = useRef(null)
@@ -100,6 +102,7 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   }, [page, sevFilter, statusGroupParam, tab, submittedSearch])
 
   useEffect(() => { fetchIncidents() }, [fetchIncidents])
+  useEffect(() => { if (refresh) fetchIncidents() }, [refresh])
 
   const loadOperators = useCallback(() => {
     if (operators.length === 0 && isAdmin) {
@@ -143,69 +146,31 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   }
 
   const resetForm = () => {
-    setForm({ title: '', description: '', severity_id: 1, location: '', assigned_to: '', assigned_to_name: '', status_id: 1, _originalStatus: 1, comment: '' })
+    setForm({ title: '', description: '', severity_id: 1, location: '', assigned_to: '' })
   }
 
   const openCreate = () => {
-    setEditId(null)
     resetForm()
     loadOperators()
-    setShowModal(true)
+    setShowCreate(true)
   }
 
-  const openEdit = (inc) => {
-    setEditId(inc.id)
-    setForm({
-      title: inc.title,
-      description: inc.description || '',
-      severity_id: inc.severity_id,
-      location: inc.location || '',
-      assigned_to: inc.assigned_to || '',
-      assigned_to_name: inc.assigned_to_name || '',
-      status_id: inc.status_id,
-      _originalStatus: inc.status_id,
-      comment: '',
-    })
-    loadOperators()
-    setShowModal(true)
-  }
-
-  const handleSubmit = async (e) => {
+  const handleCreate = async (e) => {
     e.preventDefault()
-    const payload = {}
-
-    if (!editId || isAdmin) {
-      payload.title = form.title
-      payload.description = form.description || null
-      payload.severity_id = form.severity_id
-      payload.location = form.location || null
-    }
-    if (isAdmin) {
-      if (form.assigned_to) payload.assigned_to = form.assigned_to
-    }
-
-    if (editId) {
-      payload.status_id = form.status_id
-      if (form.comment) payload.comment = form.comment
-    }
-
-    if (editId && !isAdmin && !payload.comment && payload.status_id === form._originalStatus) {
-      setShowModal(false)
-      return
-    }
-
     try {
-      if (editId) {
-        await incidentsAPI.update(editId, payload)
-        showToast('Incident updated successfully')
-      } else {
-        await incidentsAPI.create(payload)
-        showToast('Incident created successfully')
+      const payload = {
+        title: form.title,
+        description: form.description || null,
+        severity_id: form.severity_id,
+        location: form.location || null,
       }
-      setShowModal(false)
+      if (isAdmin && form.assigned_to) payload.assigned_to = form.assigned_to
+      await incidentsAPI.create(payload)
+      showToast('Incident created successfully')
+      setShowCreate(false)
       fetchIncidents()
     } catch (err) {
-      showToast(err.response?.data?.detail || 'Operation failed', 'error')
+      showToast(err.response?.data?.detail || 'Create failed', 'error')
     }
   }
 
@@ -217,6 +182,11 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
     } catch (err) {
       showToast(err.response?.data?.detail || 'Delete failed', 'error')
     }
+  }
+
+  const handleDetailUpdated = () => {
+    setRefresh(n => n + 1)
+    fetchIncidents()
   }
 
   const totalPages = useMemo(() => Math.ceil(total / limit), [total, limit])
@@ -320,8 +290,8 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
                 <td className="p-3 text-sm">{new Date(inc.created_at).toLocaleDateString()}</td>
                 <td className="p-3">
                   <div className="flex gap-2">
-                    <button onClick={() => openEdit(inc)}
-                      className="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">Edit</button>
+                    <button onClick={() => setDetailId(inc.id)}
+                      className="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">Detail</button>
                     {isAdmin && (
                       <button onClick={() => handleDelete(inc.id)}
                         className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700">Delete</button>
@@ -336,48 +306,41 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
 
       <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
-      {showModal && (
+      {showCreate && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-lg">
-            <h2 className="text-xl font-bold mb-4">{editId ? 'Edit Incident' : 'New Incident'}</h2>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {(!editId || isAdmin) ? (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Title *</label>
-                    <input type="text" value={form.title}
-                      onChange={e => setForm({ ...form, title: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" required />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Description</label>
-                    <textarea value={form.description}
-                      onChange={e => setForm({ ...form, description: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" rows="3" />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Severity</label>
-                    <select value={form.severity_id}
-                      onChange={e => setForm({ ...form, severity_id: Number(e.target.value) })}
-                      className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                      <option value="1">LOW</option>
-                      <option value="2">MEDIUM</option>
-                      <option value="3">HIGH</option>
-                      <option value="4">CRITICAL</option>
-                    </select>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1">Location</label>
-                    <input type="text" value={form.location}
-                      onChange={e => setForm({ ...form, location: e.target.value })}
-                      className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
-                  </div>
-                </>
-              ) : (
-                <p className="text-sm text-gray-500">Only status can be changed for this incident.</p>
-              )}
-
-              {isAdmin ? (
+            <h2 className="text-xl font-bold mb-4">New Incident</h2>
+            <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">Title *</label>
+                <input type="text" value={form.title}
+                  onChange={e => setForm({ ...form, title: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" required />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Description</label>
+                <textarea value={form.description}
+                  onChange={e => setForm({ ...form, description: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" rows="3" />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Severity</label>
+                <select value={form.severity_id}
+                  onChange={e => setForm({ ...form, severity_id: Number(e.target.value) })}
+                  className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
+                  <option value="1">LOW</option>
+                  <option value="2">MEDIUM</option>
+                  <option value="3">HIGH</option>
+                  <option value="4">CRITICAL</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">Location</label>
+                <input type="text" value={form.location}
+                  onChange={e => setForm({ ...form, location: e.target.value })}
+                  className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500" />
+              </div>
+              {isAdmin && (
                 <div>
                   <label className="block text-sm font-medium mb-1">Assigned To</label>
                   <select value={form.assigned_to}
@@ -389,66 +352,26 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
                     ))}
                   </select>
                 </div>
-
-              ) : editId && form.assigned_to ? (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Assigned To</label>
-                  <p className="text-sm text-gray-700 px-4 py-2 bg-gray-50 rounded-lg border">
-                    {form.assigned_to_name || form.assigned_to}
-                  </p>
-                </div>
-              ) : null}
-
-              {editId && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Status</label>
-                  <select value={form.status_id}
-                    onChange={e => setForm({ ...form, status_id: Number(e.target.value) })}
-                    className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500">
-                    {(isAdmin ? STATUS_OPTIONS.admin : STATUS_OPTIONS.operator).map(s => (
-                      <option key={s.value} value={s.value}>{s.label}</option>
-                    ))}
-                  </select>
-                  {!isAdmin && (
-                    <p className="text-xs text-gray-400 mt-1">Operator: OPEN → IN_PROGRESS → RESOLVED</p>
-                  )}
-                </div>
               )}
-
-              {editId && !isAdmin && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">
-                    Progress Report
-                  </label>
-                  <textarea value={form.comment}
-                    onChange={e => setForm({ ...form, comment: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                    rows="3" placeholder="Describe what was done..." />
-                </div>
-              )}
-
-              {editId && isAdmin && (
-                <div>
-                  <label className="block text-sm font-medium mb-1">Comment (optional)</label>
-                  <textarea value={form.comment}
-                    onChange={e => setForm({ ...form, comment: e.target.value })}
-                    className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
-                    rows="2" placeholder="Add a note..." />
-                </div>
-              )}
-
               <div className="flex justify-end gap-3 pt-2">
-                <button type="button" onClick={() => setShowModal(false)}
+                <button type="button" onClick={() => setShowCreate(false)}
                   className="px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button>
                 <button type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">
-                  {editId ? 'Update' : 'Create'}
-                </button>
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Create</button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      <IncidentDetail
+        incidentId={detailId}
+        isOpen={!!detailId}
+        onClose={() => setDetailId(null)}
+        onUpdated={handleDetailUpdated}
+        user={user}
+        showToast={showToast}
+      />
     </div>
   )
 })

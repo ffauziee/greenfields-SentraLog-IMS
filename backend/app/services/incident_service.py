@@ -35,22 +35,19 @@ def validate_status_transition(current_status_id: int, new_status_id: int, role:
 
 
 def get_dashboard_data():
-    counts = repo.get_dashboard_counts()
-    past_sla_count = repo.get_past_sla_count()
-    recent = repo.get_recent_incidents()
-    attention = repo.get_attention_incidents(settings.DASHBOARD_ATTENTION_LIMIT)
+    result = repo.get_dashboard_data()
 
-    for inc in attention:
+    data = {
+        **result["counts"],
+        "past_sla_count": result["past_sla_count"],
+        "recent": result["recent"],
+        "attention_incidents": result["attention_incidents"],
+    }
+
+    for inc in data["attention_incidents"]:
         inc["attention_score"] = calculate_attention_score(inc, inc.get("age_hours", 0))
 
-    return {
-        "total_open": counts["total_open"],
-        "critical_count": counts["critical_count"],
-        "unassigned_count": counts["unassigned_count"],
-        "past_sla_count": past_sla_count["count"],
-        "recent": recent,
-        "attention_incidents": attention,
-    }
+    return data
 
 
 def list_incidents(
@@ -77,11 +74,8 @@ def list_incidents(
     where, params = f.build()
     offset = (page - 1) * limit
 
+    total = repo.count_incidents_simple(where, params)["count"]
     incidents = repo.find_incidents(where, params, limit, offset)
-    total = incidents[0]["_total_count"] if incidents else 0
-
-    for inc in incidents:
-        inc.pop("_total_count", None)
 
     return {
         "total": total,

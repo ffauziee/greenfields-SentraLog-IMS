@@ -121,7 +121,7 @@ export default function ManageUsers({ user }) {
       </div>
 
       <div className="mb-4">
-        <input type="text" placeholder="Search by username..." value={search}
+        <input type="text" placeholder="Search by name or username..." value={search}
           onChange={e => setSearch(e.target.value)}
           className="w-full max-w-xs px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none" />
       </div>
@@ -143,7 +143,7 @@ export default function ManageUsers({ user }) {
               <tr><td colSpan="6" className="p-6 text-center text-gray-500">Loading...</td></tr>
             ) : (() => {
               const filtered = search
-                ? users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()))
+                ? users.filter(u => u.username.toLowerCase().includes(search.toLowerCase()) || u.full_name.toLowerCase().includes(search.toLowerCase()))
                 : users
               return filtered.length === 0 ? (
                 <tr><td colSpan="6" className="p-6 text-center text-gray-500">{search ? 'No users match your search' : 'No users found'}</td></tr>

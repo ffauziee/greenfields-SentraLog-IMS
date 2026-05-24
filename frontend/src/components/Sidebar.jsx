@@ -6,7 +6,7 @@ import { cn } from '../lib/cn'
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', Icon: CircleGauge },
   { path: '/incidents', label: 'Incidents', Icon: Zap },
-  { path: '/my-incidents', label: 'My Incidents', Icon: UserCheck },
+  { path: '/assigned-incidents', label: 'Assigned Incidents', Icon: UserCheck },
 ]
 
 const Sidebar = memo(function Sidebar({ user, onLogout, collapsed, onToggle }) {
