@@ -37,7 +37,9 @@ def list_audit_logs(
     """, tuple(params))
 
     logs = query_all(f"""
-        SELECT a.*, u.username
+        SELECT a.id, a.user_id, a.action, a.entity_type, a.entity_id,
+               a.old_value, a.new_value, a.created_at,
+               u.username
         FROM audit_logs a
         JOIN users u ON a.user_id = u.id
         WHERE {where_clause}

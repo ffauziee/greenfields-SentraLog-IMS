@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo, memo, Fragment } from 'react
 import { auditAPI } from '../services/api'
 import { cn } from '../lib/cn'
 import Toast from '../components/Toast'
+import Pagination from '../components/Pagination'
+import { useToast } from '../hooks/useToast'
 
 let cachedUsers = null
 
@@ -14,11 +16,8 @@ const ActivityLog = memo(function ActivityLog() {
   const [filterUser, setFilterUser] = useState('')
   const [filterAction, setFilterAction] = useState('')
   const [expandId, setExpandId] = useState(null)
-  const [toast, setToast] = useState(null)
+  const { toast, showToast, closeToast } = useToast('error')
   const limit = 20
-
-  const showToast = (message, type = 'error') => setToast({ message, type })
-  const closeToast = () => setToast(null)
 
   const fetchLogs = useCallback(() => {
     setLoading(true)
@@ -131,15 +130,7 @@ const ActivityLog = memo(function ActivityLog() {
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className={cn('px-3 py-1 border rounded', page <= 1 && 'disabled:opacity-50')}>Prev</button>
-          <span className="px-3 py-1">{page} / {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-            className={cn('px-3 py-1 border rounded', page >= totalPages && 'disabled:opacity-50')}>Next</button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
     </div>
   )
 })

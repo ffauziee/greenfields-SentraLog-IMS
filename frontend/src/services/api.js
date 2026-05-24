@@ -28,6 +28,7 @@ export const incidentsAPI = {
   update: (id, data) => api.put(`/incidents/${id}`, data),
   delete: (id) => api.delete(`/incidents/${id}`),
   exportCSV: (params) => api.get('/incidents/export', { params, responseType: 'blob' }),
+  deleteComment: (incidentId, commentId) => api.delete(`/incidents/${incidentId}/comments/${commentId}`),
 }
 export const usersAPI = {
   list: (params) => api.get('/users', { params }),

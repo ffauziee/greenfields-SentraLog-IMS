@@ -1,7 +1,10 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
 import { incidentsAPI, usersAPI } from '../services/api'
 import Toast from '../components/Toast'
+import Pagination from '../components/Pagination'
 import { cn } from '../lib/cn'
+import { isAdmin as checkAdmin } from '../lib/roles'
+import { useToast } from '../hooks/useToast'
 
 const STATUS_OPTIONS = {
   admin: [
@@ -39,7 +42,7 @@ function StatusBadge({ name }) {
 }
 
 const Incidents = memo(function Incidents({ user, myIncidents }) {
-  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
+  const isAdmin = checkAdmin(user)
 
   const [incidents, setIncidents] = useState([])
   const [total, setTotal] = useState(0)
@@ -47,13 +50,18 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   const [search, setSearch] = useState('')
   const [submittedSearch, setSubmittedSearch] = useState('')
   const [sevFilter, setSevFilter] = useState('')
-  const [tab, setTab] = useState(myIncidents ? 'mine' : 'active')
+  const [tab, setTab] = useState(myIncidents ? 'active' : 'active')
+  const [showExportOptions, setShowExportOptions] = useState(false)
+  const [exportDateFrom, setExportDateFrom] = useState(() => {
+    const d = new Date(); d.setMonth(d.getMonth() - 6); return d.toISOString().slice(0, 10)
+  })
+  const [exportDateTo, setExportDateTo] = useState(() => new Date().toISOString().slice(0, 10))
   const [showModal, setShowModal] = useState(false)
   const [editId, setEditId] = useState(null)
-  const [form, setForm] = useState({ title: '', description: '', severity_id: 1, location: '', assigned_to: '', assigned_to_name: '', status_id: 1 })
+  const [form, setForm] = useState({ title: '', description: '', severity_id: 1, location: '', assigned_to: '', assigned_to_name: '', status_id: 1, _originalStatus: 1, comment: '' })
   const [operators, setOperators] = useState([])
   const [loading, setLoading] = useState(true)
-  const [toast, setToast] = useState(null)
+  const { toast, showToast, closeToast } = useToast()
   const limit = 20
   const abortRef = useRef(null)
 
@@ -66,10 +74,7 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
     { key: 'active', label: 'Active' },
     { key: 'archived', label: 'Archived' },
   ]
-  const tabs = isAdmin ? adminTabs : operatorTabs
-
-  const showToast = (message, type = 'success') => setToast({ message, type })
-  const closeToast = () => setToast(null)
+  const tabs = isAdmin && !myIncidents ? adminTabs : operatorTabs
 
   const statusGroupParam = tab
 
@@ -80,8 +85,10 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
 
     setLoading(true)
     const params = { page, limit, status_group: statusGroupParam }
-    if (tab === 'mine') {
+    if (myIncidents) {
       params.assigned_to_me = true
+    }
+    if (tab === 'mine') {
       params.status_group = 'active'
     }
     if (submittedSearch) params.search = submittedSearch
@@ -107,9 +114,10 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   }
 
   const handleExport = () => {
-    const params = { status_group: tab }
+    const params = { status_group: tab, date_from: exportDateFrom, date_to: exportDateTo }
     if (submittedSearch) params.search = submittedSearch
     if (sevFilter) params.severity = sevFilter
+    setShowExportOptions(false)
     incidentsAPI.exportCSV(params)
       .then(res => {
         const url = window.URL.createObjectURL(new Blob([res.data]))
@@ -122,13 +130,20 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
       .catch(() => showToast('Export failed', 'error'))
   }
 
+  const setLastMonths = (n) => {
+    const to = new Date().toISOString().slice(0, 10)
+    const from = new Date(); from.setMonth(from.getMonth() - n)
+    setExportDateFrom(from.toISOString().slice(0, 10))
+    setExportDateTo(to)
+  }
+
   const switchTab = (key) => {
     setTab(key)
     setPage(1)
   }
 
   const resetForm = () => {
-    setForm({ title: '', description: '', severity_id: 1, location: '', assigned_to: '', assigned_to_name: '', status_id: 1 })
+    setForm({ title: '', description: '', severity_id: 1, location: '', assigned_to: '', assigned_to_name: '', status_id: 1, _originalStatus: 1, comment: '' })
   }
 
   const openCreate = () => {
@@ -148,6 +163,8 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
       assigned_to: inc.assigned_to || '',
       assigned_to_name: inc.assigned_to_name || '',
       status_id: inc.status_id,
+      _originalStatus: inc.status_id,
+      comment: '',
     })
     loadOperators()
     setShowModal(true)
@@ -155,21 +172,29 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    try {
-      const payload = {}
-      if (!editId || isAdmin) {
-        payload.title = form.title
-        payload.description = form.description || null
-        payload.severity_id = form.severity_id
-        payload.location = form.location || null
-      }
-      if (isAdmin) {
-        if (form.assigned_to) payload.assigned_to = form.assigned_to
-      }
-      if (editId) {
-        payload.status_id = form.status_id
-      }
+    const payload = {}
 
+    if (!editId || isAdmin) {
+      payload.title = form.title
+      payload.description = form.description || null
+      payload.severity_id = form.severity_id
+      payload.location = form.location || null
+    }
+    if (isAdmin) {
+      if (form.assigned_to) payload.assigned_to = form.assigned_to
+    }
+
+    if (editId) {
+      payload.status_id = form.status_id
+      if (form.comment) payload.comment = form.comment
+    }
+
+    if (editId && !isAdmin && !payload.comment && payload.status_id === form._originalStatus) {
+      setShowModal(false)
+      return
+    }
+
+    try {
       if (editId) {
         await incidentsAPI.update(editId, payload)
         showToast('Incident updated successfully')
@@ -233,8 +258,38 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
           <option value="1">LOW</option>
         </select>
         <button type="submit" className="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">Search</button>
-        <button type="button" onClick={handleExport}
-          className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap">Export CSV</button>
+        <div className="relative">
+          <button type="button" onClick={() => setShowExportOptions(!showExportOptions)}
+            className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap">Export CSV</button>
+          {showExportOptions && (
+            <div className="absolute right-0 top-full mt-2 bg-white border rounded-xl shadow-lg p-4 z-50 w-72">
+              <div className="space-y-3">
+                <div className="flex gap-2">
+                  <button type="button" onClick={() => setLastMonths(3)}
+                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">3 Bulan</button>
+                  <button type="button" onClick={() => setLastMonths(6)}
+                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">6 Bulan</button>
+                  <button type="button" onClick={() => setLastMonths(12)}
+                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">1 Tahun</button>
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Dari</label>
+                  <input type="date" value={exportDateFrom}
+                    onChange={e => setExportDateFrom(e.target.value)}
+                    className="w-full px-3 py-1.5 border rounded text-sm outline-none" />
+                </div>
+                <div>
+                  <label className="block text-xs text-gray-500 mb-1">Sampai</label>
+                  <input type="date" value={exportDateTo}
+                    onChange={e => setExportDateTo(e.target.value)}
+                    className="w-full px-3 py-1.5 border rounded text-sm outline-none" />
+                </div>
+                <button type="button" onClick={handleExport}
+                  className="w-full bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 text-sm font-medium">Download CSV</button>
+              </div>
+            </div>
+          )}
+        </div>
       </form>
 
       <div className="bg-white rounded-xl shadow overflow-x-auto" style={{ scrollbarGutter: 'stable' }}>
@@ -279,15 +334,7 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
         </table>
       </div>
 
-      {totalPages > 1 && (
-        <div className="flex justify-center gap-2 mt-4">
-          <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50">Prev</button>
-          <span className="px-3 py-1">{page} / {totalPages}</span>
-          <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
-            className="px-3 py-1 border rounded disabled:opacity-50">Next</button>
-        </div>
-      )}
+      <Pagination page={page} totalPages={totalPages} onPageChange={setPage} />
 
       {showModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -365,6 +412,28 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
                   {!isAdmin && (
                     <p className="text-xs text-gray-400 mt-1">Operator: OPEN → IN_PROGRESS → RESOLVED</p>
                   )}
+                </div>
+              )}
+
+              {editId && !isAdmin && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">
+                    Progress Report
+                  </label>
+                  <textarea value={form.comment}
+                    onChange={e => setForm({ ...form, comment: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                    rows="3" placeholder="Describe what was done..." />
+                </div>
+              )}
+
+              {editId && isAdmin && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Comment (optional)</label>
+                  <textarea value={form.comment}
+                    onChange={e => setForm({ ...form, comment: e.target.value })}
+                    className="w-full px-4 py-2 border rounded-lg outline-none focus:ring-2 focus:ring-blue-500"
+                    rows="2" placeholder="Add a note..." />
                 </div>
               )}
 

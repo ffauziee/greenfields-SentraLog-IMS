@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, Query
 
 from ..schemas.incident import IncidentCreate, IncidentUpdate
 from ..services import incident_service
-from ..utils.auth import get_current_user
+from ..utils.auth import get_current_user, require_role
 
 router = APIRouter(prefix="/api/incidents", tags=["incidents"])
 
@@ -44,6 +44,8 @@ def export_incidents(
     severity: Optional[int] = Query(None),
     status_group: Optional[str] = Query("active"),
     assigned_to_me: Optional[bool] = Query(False),
+    date_from: Optional[str] = Query(None, description="Start date (YYYY-MM-DD)"),
+    date_to: Optional[str] = Query(None, description="End date (YYYY-MM-DD)"),
     current_user: dict = Depends(get_current_user),
 ):
     return incident_service.export_incidents_csv(
@@ -53,6 +55,8 @@ def export_incidents(
         severity=severity,
         status_group=status_group,
         assigned_to_me=assigned_to_me,
+        date_from=date_from,
+        date_to=date_to,
     )
 
 
@@ -75,6 +79,15 @@ def update_incident(
     current_user: dict = Depends(get_current_user),
 ):
     return incident_service.update_incident(incident_id, data, current_user)
+
+
+@router.delete("/{incident_id}/comments/{comment_id}")
+def delete_comment(
+    incident_id: str,
+    comment_id: str,
+    current_user: dict = Depends(require_role(["admin"])),
+):
+    return incident_service.delete_comment(incident_id, comment_id, current_user)
 
 
 @router.delete("/{incident_id}")

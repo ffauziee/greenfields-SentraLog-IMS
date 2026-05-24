@@ -7,13 +7,10 @@ import ManageUsers from './pages/ManageUsers.jsx'
 import ActivityLog from './pages/ActivityLog.jsx'
 import Sidebar from './components/Sidebar.jsx'
 import { cn } from './lib/cn'
-
-function hasAdminAccess(user) {
-  return user?.role === 'superadmin' || user?.role === 'admin'
-}
+import { isAdmin } from './lib/roles'
 
 function AdminRoute({ user, children }) {
-  return hasAdminAccess(user) ? children : <Navigate to="/" replace />
+  return isAdmin(user) ? children : <Navigate to="/" replace />
 }
 
 /** Root App: auth state, routing, sidebar layout */

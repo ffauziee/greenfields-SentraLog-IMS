@@ -2,13 +2,19 @@ import { useState, useEffect, memo } from 'react'
 import { incidentsAPI } from '../services/api'
 import { Link } from 'react-router-dom'
 import { cn } from '../lib/cn'
+import { isAdmin as checkAdmin } from '../lib/roles'
+import Toast from '../components/Toast'
+import { useToast } from '../hooks/useToast'
 
 const Dashboard = memo(function Dashboard({ user }) {
+  const isAdmin = checkAdmin(user)
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
   const [detailId, setDetailId] = useState(null)
   const [detail, setDetail] = useState(null)
   const [detailLoading, setDetailLoading] = useState(false)
+  const [detailRefresh, setDetailRefresh] = useState(0)
+  const { toast, showToast, closeToast } = useToast()
 
   useEffect(() => {
     incidentsAPI.dashboard()
@@ -24,7 +30,18 @@ const Dashboard = memo(function Dashboard({ user }) {
       .then(res => setDetail(res.data))
       .catch(() => { setDetail(null); setDetailId(null) })
       .finally(() => setDetailLoading(false))
-  }, [detailId])
+  }, [detailId, detailRefresh])
+
+  const handleDeleteComment = async (commentId) => {
+    if (!window.confirm('Delete this comment?')) return
+    try {
+      await incidentsAPI.deleteComment(detailId, commentId)
+      showToast('Comment deleted')
+      setDetailRefresh(n => n + 1)
+    } catch (err) {
+      showToast(err.response?.data?.detail || 'Failed to delete comment', 'error')
+    }
+  }
 
   if (loading) return <div className="p-6 text-gray-500">Loading dashboard...</div>
 
@@ -36,6 +53,8 @@ const Dashboard = memo(function Dashboard({ user }) {
 
   return (
     <div className="p-6">
+      {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
+
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Dashboard</h1>
       </div>
@@ -200,7 +219,13 @@ const Dashboard = memo(function Dashboard({ user }) {
                           <div key={c.id} className="bg-gray-50 rounded-lg p-3">
                             <div className="flex items-center justify-between mb-1">
                               <span className="text-xs font-medium">{c.username}</span>
-                              <span className="text-xs text-gray-400">{new Date(c.created_at).toLocaleString()}</span>
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs text-gray-400">{new Date(c.created_at).toLocaleString()}</span>
+                                {isAdmin && (
+                                  <button onClick={() => handleDeleteComment(c.id)}
+                                    className="text-red-400 hover:text-red-600 text-sm leading-none">&times;</button>
+                                )}
+                              </div>
                             </div>
                             <p className="text-sm text-gray-700">{c.content}</p>
                           </div>

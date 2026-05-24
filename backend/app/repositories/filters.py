@@ -39,5 +39,13 @@ class IncidentFilter:
             self.conditions.append("i.status_id = %s")
             self.params.append(status_id)
 
+    def by_date_range(self, date_from: Optional[str], date_to: Optional[str]):
+        if date_from:
+            self.conditions.append("i.created_at >= %s::timestamp")
+            self.params.append(date_from)
+        if date_to:
+            self.conditions.append("i.created_at <= (%s::timestamp + INTERVAL '1 day' - INTERVAL '1 second')")
+            self.params.append(date_to)
+
     def build(self):
         return " AND ".join(self.conditions), tuple(self.params)

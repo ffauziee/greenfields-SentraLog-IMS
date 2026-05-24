@@ -16,6 +16,7 @@ class IncidentUpdate(BaseModel):
     status_id: Optional[int] = Field(None, ge=1, le=5)
     location: Optional[str] = None
     assigned_to: Optional[str] = None
+    comment: Optional[str] = Field(None, min_length=1, max_length=1000)
 
 class IncidentResponse(BaseModel):
     id: str

@@ -14,8 +14,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 480
     CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
     SUPERADMIN_USERNAME: str = "admin"
-    DB_POOL_MIN: int = 2
-    DB_POOL_MAX: int = 10
+    DB_POOL_MIN: int = 4
+    DB_POOL_MAX: int = 20
+    DB_STATEMENT_TIMEOUT_MS: int = 30000
     DASHBOARD_ATTENTION_LIMIT: int = 50
     ESCALATION_THRESHOLD_HOURS: int = 24
     CRITICAL_SLA_HOURS: int = 4

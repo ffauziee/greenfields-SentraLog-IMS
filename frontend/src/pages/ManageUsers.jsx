@@ -1,7 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import { usersAPI } from '../services/api'
 import { cn } from '../lib/cn'
+import { isAdmin, isSuperadmin } from '../lib/roles'
 import Toast from '../components/Toast'
+import { useToast } from '../hooks/useToast'
 
 export default function ManageUsers({ user }) {
   const [users, setUsers] = useState([])
@@ -12,10 +14,7 @@ export default function ManageUsers({ user }) {
   const [showResetPw, setShowResetPw] = useState(null)
   const [form, setForm] = useState({ username: '', password: '', full_name: '', role: 'operator' })
   const [resetPw, setResetPw] = useState('')
-  const [toast, setToast] = useState(null)
-
-  const showToast = (message, type = 'success') => setToast({ message, type })
-  const closeToast = () => setToast(null)
+  const { toast, showToast, closeToast } = useToast()
 
   const fetchUsers = useCallback(() => {
     setLoading(true)
@@ -71,8 +70,7 @@ export default function ManageUsers({ user }) {
     }
   }
 
-  const canManageSuperadmin = user?.role === 'superadmin'
-  const isSuperadmin = (u) => u.username === 'admin' && u.role === 'superadmin'
+  const canManageSuperadmin = isSuperadmin(user)
 
   const handleToggleActive = async (u) => {
     if (isSuperadmin(u)) {

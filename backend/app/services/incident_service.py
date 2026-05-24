@@ -1,9 +1,8 @@
-import csv
-import io
 from datetime import datetime, timezone
 from typing import Optional
 
-from fastapi import HTTPException, Response
+from fastapi import HTTPException
+from fastapi.responses import StreamingResponse
 
 from ..db.database import query_one
 from ..core.config import get_settings
@@ -78,15 +77,25 @@ def list_incidents(
     where, params = f.build()
     offset = (page - 1) * limit
 
-    total = repo.count_incidents(where, params)
     incidents = repo.find_incidents(where, params, limit, offset)
+    total = incidents[0]["_total_count"] if incidents else 0
+
+    for inc in incidents:
+        inc.pop("_total_count", None)
 
     return {
-        "total": total["count"],
+        "total": total,
         "page": page,
         "limit": limit,
         "data": incidents,
     }
+
+
+def _csv_escape(val):
+    s = str(val) if val is not None else ""
+    if "," in s or '"' in s or "\n" in s:
+        s = '"' + s.replace('"', '""') + '"'
+    return s
 
 
 def export_incidents_csv(
@@ -96,6 +105,8 @@ def export_incidents_csv(
     severity: Optional[int] = None,
     status_group: str = "active",
     assigned_to_me: bool = False,
+    date_from: Optional[str] = None,
+    date_to: Optional[str] = None,
 ):
     if status_group == "unassigned" and not is_admin_role(role):
         raise HTTPException(status_code=403, detail="Only admin can view unassigned incidents")
@@ -105,36 +116,42 @@ def export_incidents_csv(
     f.by_assigned_to(user_id if assigned_to_me else None)
     f.by_search(search)
     f.by_severity(severity)
+    f.by_date_range(date_from, date_to)
 
     where, params = f.build()
-    incidents = repo.find_all_incidents(where, params)
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow([
+    header = [
         "ID", "Title", "Severity", "Status", "Location",
         "Reported By", "Assigned To", "Created At", "Resolved At",
         "SLA Hours", "Attention Score",
-    ])
+    ]
 
-    for inc in incidents:
-        age_hours = (
-            (datetime.now(timezone.utc) - inc["created_at"].replace(tzinfo=timezone.utc)).total_seconds() / 3600
-            if inc["created_at"] else 0
-        )
-        attn_data = {**inc, "age_hours": age_hours}
-        score = calculate_attention_score(attn_data, age_hours)
-        writer.writerow([
-            inc["id"], inc["title"], inc["severity_name"], inc["status_name"],
-            inc.get("location") or "", inc["reported_by_name"],
-            inc.get("assigned_to_name") or "",
-            inc["created_at"].isoformat() if inc.get("created_at") else "",
-            inc["resolved_at"].isoformat() if inc.get("resolved_at") else "",
-            inc.get("sla_hours") or "", score,
-        ])
+    def generate():
+        yield ",".join(header) + "\n"
+        now = datetime.now(timezone.utc)
+        for inc in repo.stream_all_incidents(where, params):
+            age_hours = (
+                (now - inc["created_at"].replace(tzinfo=timezone.utc)).total_seconds() / 3600
+                if inc.get("created_at") else 0
+            )
+            attn_data = {**inc, "age_hours": age_hours}
+            score = calculate_attention_score(attn_data, age_hours)
+            yield ",".join([
+                _csv_escape(inc["id"]),
+                _csv_escape(inc["title"]),
+                _csv_escape(inc["severity_name"]),
+                _csv_escape(inc["status_name"]),
+                _csv_escape(inc.get("location") or ""),
+                _csv_escape(inc["reported_by_name"]),
+                _csv_escape(inc.get("assigned_to_name") or ""),
+                _csv_escape(inc["created_at"].isoformat() if inc.get("created_at") else ""),
+                _csv_escape(inc["resolved_at"].isoformat() if inc.get("resolved_at") else ""),
+                _csv_escape(inc.get("sla_hours") or ""),
+                _csv_escape(score),
+            ]) + "\n"
 
-    return Response(
-        content=output.getvalue(),
+    return StreamingResponse(
+        generate(),
         media_type="text/csv",
         headers={"Content-Disposition": "attachment; filename=incidents_export.csv"},
     )
@@ -202,7 +219,7 @@ def update_incident(incident_id: str, data, current_user: dict):
         updates["description"] = data.description
     if data.severity_id is not None:
         updates["severity_id"] = data.severity_id
-    if data.status_id is not None:
+    if data.status_id is not None and data.status_id != existing["status_id"]:
         validate_status_transition(existing["status_id"], data.status_id, role)
         updates["status_id"] = data.status_id
         if data.status_id in (STATUS_RESOLVED, STATUS_CLOSED):
@@ -216,21 +233,23 @@ def update_incident(incident_id: str, data, current_user: dict):
         _require_active_user(data.assigned_to)
         updates["assigned_to"] = data.assigned_to
 
-    if not updates:
-        raise HTTPException(status_code=400, detail="No fields to update")
-
     if role == "operator":
         allowed = {"status_id", "is_resolved", "resolved_at"}
         updates = {k: v for k, v in updates.items() if k in allowed}
-        if not updates:
-            raise HTTPException(
-                status_code=403, detail="Operator can only change incident status"
-            )
 
-    updates["updated_at"] = datetime.now(timezone.utc)
-    repo.update_incident_fields(incident_id, updates)
+    if not updates and not data.comment:
+        raise HTTPException(status_code=400, detail="No fields to update")
 
-    create_audit_log(user_id, "UPDATE", "incident", incident_id, dict(existing), updates)
+    if updates:
+        updates["updated_at"] = datetime.now(timezone.utc)
+        repo.update_incident_fields(incident_id, updates)
+
+    audit_changes = dict(updates)
+    if data.comment:
+        repo.insert_comment(incident_id, user_id, data.comment)
+        audit_changes["comment"] = data.comment
+
+    create_audit_log(user_id, "UPDATE", "incident", incident_id, dict(existing), audit_changes)
     return {"message": "Incident updated"}
 
 
@@ -248,3 +267,16 @@ def delete_incident(incident_id: str, current_user: dict):
     repo.soft_delete_incident(incident_id, datetime.now(timezone.utc))
     create_audit_log(user_id, "DELETE", "incident", incident_id, dict(existing), None)
     return {"message": "Incident deleted"}
+
+
+def delete_comment(incident_id: str, comment_id: str, current_user: dict):
+    comment = repo.find_comment(comment_id)
+    if not comment or str(comment["incident_id"]) != incident_id:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    repo.delete_comment(comment_id)
+    create_audit_log(
+        current_user["id"], "DELETE", "comment", comment_id,
+        dict(comment), None,
+    )
+    return {"message": "Comment deleted"}

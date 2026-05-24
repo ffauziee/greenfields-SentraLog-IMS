@@ -35,10 +35,15 @@ def get_db():
         get_pool().putconn(conn)
 
 
+def _set_timeout(cur):
+    cur.execute("SET statement_timeout = %s", (settings.DB_STATEMENT_TIMEOUT_MS,))
+
+
 def query_all(sql: str, params: tuple = None):
     """Execute a SELECT query and return all matching rows as dicts."""
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            _set_timeout(cur)
             cur.execute(sql, params)
             return cur.fetchall()
 
@@ -47,6 +52,7 @@ def query_one(sql: str, params: tuple = None):
     """Execute a SELECT query and return the first matching row as a dict."""
     with get_db() as conn:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            _set_timeout(cur)
             cur.execute(sql, params)
             return cur.fetchone()
 
@@ -55,6 +61,7 @@ def execute(sql: str, params: tuple = None):
     """Execute an INSERT/UPDATE/DELETE query and return the number of affected rows."""
     with get_db() as conn:
         with conn.cursor() as cur:
+            _set_timeout(cur)
             cur.execute(sql, params)
             return cur.rowcount
 
