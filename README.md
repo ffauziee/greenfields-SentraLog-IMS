@@ -76,9 +76,9 @@ Buka **http://localhost:5173** dan login dengan akun default di bawah.
 | Username | Password | Role |
 |---|---|---|
 | `admin` | `admin123` | Superadmin |
-| `operator_a` | `operator` | Operator |
-| `operator_b` | `operator` | Operator |
-| `operator_c` | `operator` | Operator |
+| `operator_a` | `operator123` | Operator |
+| `operator_b` | `operator123` | Operator |
+| `operator_c` | `operator123` | Operator |
 
 > **Security note for testing:** The `.env` file is included in the repository with a placeholder `SECRET_KEY`. For production deployments, replace it with a strong random string.
 
