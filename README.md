@@ -30,12 +30,17 @@ Create database and run migrations:
 
 **Windows (PowerShell):**
 ```powershell
-$env:PGPASSWORD='postgres' //atau sesuaikan dengan password yang dimiliki
+$env:PGPASSWORD='postgres' # ganti 'postgres' dengan password PostgreSQL kamu
 psql -U postgres -c "CREATE DATABASE greenfields_audit;"
 Get-ChildItem backend/app/migration/00[0-4]*.sql | Sort-Object Name | ForEach-Object {
     psql -U postgres -d greenfields_audit -f $_.FullName
 }
 ```
+> ⚠️ Password PostgreSQL di perintah di atas dan di `backend/.env` harus cocok.
+> Kalo password kamu bukan `postgres`:
+> 1. Edit `backend/.env` → ubah `postgres:postgres` jadi `postgres:<password-kamu>`
+> 2. Ganti `$env:PGPASSWORD='postgres'` di atas dengan password kamu
+>
 > Migration `005_clean_seed_data.sql` dilewati — lihat [Migration Notes](#migration-notes) untuk penjelasan.
 
 **Linux / macOS:**
@@ -45,6 +50,9 @@ for f in backend/app/migration/00[0-4]*.sql; do
     psql -U postgres -d greenfields_audit -f "$f"
 done
 ```
+> ⚠️ Password PostgreSQL di `backend/.env` harus sesuai dengan PostgreSQL kamu.
+> Edit `backend/.env` → ubah `postgres:postgres` jadi `postgres:<password-kamu>` kalo perlu.
+>
 > Migration `005_clean_seed_data.sql` dilewati — lihat [Migration Notes](#migration-notes) untuk penjelasan.
 
 ### 2. Backend (port 8000)
@@ -55,7 +63,7 @@ pip install -r requirements.txt
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
-> `.env` sudah tersedia — tidak perlu konfigurasi tambahan.
+> `.env` sudah tersedia. **Kalau password PostgreSQL kamu bukan `postgres`, edit dulu `backend/.env`** — ubah bagian `postgres:postgres` jadi `postgres:<password-kamu>`.
 > **Biarkan terminal backend tetap jalan**, buka terminal baru untuk langkah selanjutnya.
 
 ### 3. Seed Default Accounts
