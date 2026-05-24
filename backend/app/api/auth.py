@@ -1,9 +1,18 @@
-from fastapi import APIRouter, HTTPException
+from typing import Optional
+
+from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel, Field
 
 from ..core.config import get_settings
 from ..db.database import execute, query_one
 from ..schemas.incident import LoginRequest, TokenResponse
-from ..utils.auth import create_access_token, hash_password, verify_password
+from ..services.audit import create_audit_log
+from ..utils.auth import (
+    create_access_token,
+    get_current_user,
+    hash_password,
+    verify_password,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 settings = get_settings()
@@ -24,6 +33,53 @@ def login(data: LoginRequest):
         full_name=user["full_name"],
         user_id=str(user["id"]),
     )
+
+
+class ProfileUpdate(BaseModel):
+    full_name: Optional[str] = Field(None, min_length=2, max_length=100)
+    old_password: Optional[str] = None
+    new_password: Optional[str] = Field(None, min_length=6)
+
+
+@router.put("/me")
+def update_profile(
+    data: ProfileUpdate,
+    current_user: dict = Depends(get_current_user),
+):
+    """Update own profile: full_name and/or password."""
+    if data.full_name is None and data.new_password is None:
+        raise HTTPException(status_code=400, detail="Nothing to update")
+
+    updates = {}
+    if data.full_name is not None:
+        updates["full_name"] = data.full_name
+
+    if data.new_password is not None:
+        if not data.old_password:
+            raise HTTPException(status_code=400, detail="Old password is required")
+        stored = query_one(
+            "SELECT password_hash FROM users WHERE id = %s",
+            (current_user["id"],),
+        )
+        if not stored or not verify_password(data.old_password, stored["password_hash"]):
+            raise HTTPException(status_code=400, detail="Old password is incorrect")
+        updates["password_hash"] = hash_password(data.new_password)
+
+    set_clause = ", ".join([f"{k} = %s" for k in updates.keys()])
+    values = list(updates.values()) + [current_user["id"]]
+    execute(
+        f"UPDATE users SET {set_clause}, updated_at = NOW() WHERE id = %s",
+        tuple(values),
+    )
+    create_audit_log(
+        current_user["id"], "UPDATE", "user", current_user["id"], None, updates
+    )
+    return {
+        "id": str(current_user["id"]),
+        "username": current_user["username"],
+        "full_name": updates.get("full_name", current_user["full_name"]),
+        "role": current_user["role"],
+    }
 
 
 @router.post("/seed")

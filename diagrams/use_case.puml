@@ -1,0 +1,77 @@
+@startuml
+!define RECTANGLE class
+
+skinparam rectangle {
+    BorderColor #1a73e8
+    BackgroundColor #e8f0fe
+    RoundCorner 10
+}
+
+skinparam actor {
+    BorderColor #1a73e8
+    BackgroundColor #e8f0fe
+    FontColor #1a73e8
+}
+
+skinparam usecase {
+    BorderColor #34a853
+    BackgroundColor #e6f4ea
+    FontColor #1e3a5f
+}
+
+left to right direction
+title **Use Case Diagram - Greenfields IMS**
+
+actor "Superadmin" as superadmin
+actor "Admin" as admin
+actor "Operator" as operator
+
+rectangle "Greenfields IMS" {
+    (UC-01 Login)
+    (UC-02 View Dashboard)
+    (UC-03 List Incidents)
+    (UC-04 Create Incident)
+    (UC-05 View Incident Detail)
+    (UC-06 Edit Incident)
+    (UC-07 Delete Incident)
+    (UC-08 Export CSV)
+    (UC-09 Manage Users)
+    (UC-10 View Audit Logs)
+    (UC-11 Edit Profile)
+}
+
+operator --> (UC-01) : includes
+operator --> (UC-02)
+operator --> (UC-03)
+operator --> (UC-04)
+operator --> (UC-05)
+operator --> (UC-06)
+operator --> (UC-08)
+operator --> (UC-11)
+
+admin --> (UC-01) : includes
+admin --> (UC-02)
+admin --> (UC-03)
+admin --> (UC-04)
+admin --> (UC-05)
+admin --> (UC-06)
+admin --> (UC-07)
+admin --> (UC-08)
+admin --> (UC-09)
+admin --> (UC-10)
+admin --> (UC-11)
+
+superadmin --> (UC-01) : includes
+superadmin --> (UC-02)
+superadmin --> (UC-03)
+superadmin --> (UC-04)
+superadmin --> (UC-05)
+superadmin --> (UC-06)
+superadmin --> (UC-07)
+superadmin --> (UC-08)
+superadmin --> (UC-09)
+superadmin --> (UC-10)
+superadmin --> (UC-11)
+
+note bottom of (UC-01) : Wajib diawali dengan Login\nuntuk mendapatkan JWT token
+@enduml

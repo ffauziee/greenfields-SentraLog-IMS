@@ -1,0 +1,41 @@
+@startuml
+title **Activity Diagram - Edit Incident (UC-06)**
+
+start
+:User membuka detail incident\ndari dashboard atau halaman incidents;
+:Sistem menampilkan modal IncidentDetail;
+:Klik tombol "Edit";
+:Sistem mengubah form menjadi editable;
+repeat
+  :User mengubah field:\n- Title\n- Description\n- Severity\n- Status\n- Location\n- Assigned To (admin only)\n- Comment;
+  :Klik tombol "Save";
+  if (Perubahan diizinkan untuk role ini?) then (ya)
+    if (Status berubah?) then (ya)
+      :Sistem memvalidasi transisi status\nberdasarkan role;
+      if (Transisi valid?) then (ya)
+        :Lanjutkan update;
+      else (tidak)
+        :Tampilkan error "Transisi status tidak valid";
+      endif
+    else (tidak)
+      :Lanjutkan update;
+    endif
+    if (Ada field yang diubah?) then (ya)
+      :Sistem mengirim request PUT /api/incidents/{id};
+      :Sistem menyimpan snapshot old_value ke audit log;
+      :Sistem memperbarui data di database;
+      :Sistem menyimpan snapshot new_value ke audit log;
+      :Sistem menutup modal edit;
+      :Sistem menampilkan toast "Incident updated";
+      :Sistem merefresh tampilan;
+      stop
+    else (tidak)
+      :Tampilkan pesan "Tidak ada perubahan";
+    endif
+  else (tidak)
+    :Tampilkan error "Forbidden:\nAnda tidak memiliki akses";
+  endif
+repeat while (Memperbaiki input?) is (ya)
+-> (tidak);
+stop
+@enduml

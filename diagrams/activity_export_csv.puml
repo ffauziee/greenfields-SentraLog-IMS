@@ -1,0 +1,29 @@
+@startuml
+title **Activity Diagram - Export CSV (UC-08)**
+
+start
+:User membuka halaman Incidents;
+:User memilih filter:\n- Status group\n- Severity\n- Date range\n- Search keyword;
+:User mengklik tombol "Export CSV";
+:Sistem mengirim request GET /api/incidents/export\ndengan parameter filter;
+:Sistem membuka server-side cursor\ndengan statement_timeout 5 menit;
+
+while (Ada baris dari cursor?) is (ya)
+  :Sistem mengambil 2000 baris\ndari database;
+  :Sistem menghitung attention_score\nuntuk setiap baris;
+  :Sistem mengonversi baris ke format CSV;
+  :Sistem mengirim potongan CSV\nke klien (streaming);
+endwhile (tidak)
+
+:Sistem menutup cursor dan\ntidak menyimpan data di memori;
+:Sistem mengirim end-of-file\nke klien;
+:Klien mendownload file CSV;
+stop
+
+note right
+  Safety net: maksimal 100.000 baris
+  Zero memory overhead - streaming
+  Koneksi DB tetap terbuka
+  sampai semua baris terkirim
+end note
+@enduml

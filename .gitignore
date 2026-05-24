@@ -5,8 +5,6 @@ __pycache__/
 .venv/
 node_modules/
 #other
-.env
 scripts/
-deliverables/
 docs/
 AGENTS.md

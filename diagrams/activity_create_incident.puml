@@ -1,0 +1,29 @@
+@startuml
+title **Activity Diagram - Create Incident (UC-04)**
+
+start
+:User membuka halaman Incidents;
+:Klik tombol "Create Incident";
+:Sistem menampilkan modal form create incident;
+repeat
+  :Mengisi data insiden:\n- Title (wajib)\n- Description\n- Severity (wajib)\n- Location\n- Assigned To (admin only);
+  :Klik tombol "Save";
+  if (Data valid?) then (ya)
+    :Sistem mengirim request POST /api/incidents;
+    if (Response sukses?) then (ya)
+      :Sistem menutup modal;
+      :Sistem menampilkan toast "Incident created";
+      :Sistem merefresh daftar insiden;
+      :Sistem mencatat audit log CREATE;
+      stop
+    else (tidak)
+      :Tampilkan pesan error dari server;
+    endif
+  else (tidak)
+    :Tampilkan validasi error\npada field yang salah;
+  endif
+repeat while (Memperbaiki data?) is (ya)
+-> (tidak);
+:Sistem menutup modal tanpa menyimpan;
+stop
+@enduml

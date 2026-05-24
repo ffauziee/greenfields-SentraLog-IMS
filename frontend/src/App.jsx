@@ -9,6 +9,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard.jsx'))
 const Incidents = lazy(() => import('./pages/Incidents.jsx'))
 const ManageUsers = lazy(() => import('./pages/ManageUsers.jsx'))
 const ActivityLog = lazy(() => import('./pages/ActivityLog.jsx'))
+const Profile = lazy(() => import('./pages/Profile.jsx'))
 
 function AdminRoute({ user, children }) {
   return isAdmin(user) ? children : <Navigate to="/" replace />
@@ -70,6 +71,7 @@ export default function App() {
                 <ActivityLog />
               </AdminRoute>
             } />
+            <Route path="/profile" element={<Profile user={user} onUserUpdate={setUser} />} />
             <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </Suspense>

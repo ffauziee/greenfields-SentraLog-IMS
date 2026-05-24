@@ -132,7 +132,7 @@ def stream_all_incidents(where_clause: str, params: tuple):
     conn = get_pool().getconn()
     try:
         with conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
-            cur.execute("SET statement_timeout = 300000")
+            cur.execute("SET statement_timeout = %s", (settings.EXPORT_STATEMENT_TIMEOUT_MS,))
             cur.execute(
                 f"""SELECT {INCIDENT_COLS}, s.name as severity_name, s.color as severity_color,
                            s.level as severity_level, s.sla_hours,

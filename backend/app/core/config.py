@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     ESCALATION_THRESHOLD_HOURS: int = 24
     CRITICAL_SLA_HOURS: int = 4
     HIGH_SLA_HOURS: int = 24
+    EXPORT_STATEMENT_TIMEOUT_MS: int = 300000
 
     class Config:
         env_file = ".env"

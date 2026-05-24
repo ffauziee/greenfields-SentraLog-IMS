@@ -1,0 +1,47 @@
+@startuml
+title **Activity Diagram - View Dashboard (UC-02)**
+
+start
+:User login dan\ndi-redirect ke Dashboard;
+:Sistem mengirim request GET /api/incidents/dashboard;
+:Database mengeksekusi 4 subquery\ndalam 1 round-trip;
+
+partition "Subquery 1: Statistics" {
+  :Hitung total_open\ndari insiden aktif;
+  :Hitung critical_count\ndari insiden CRITICAL aktif;
+  :Hitung unassigned_count\ndari insiden tanpa penugasan;
+}
+
+partition "Subquery 2: SLA Breach" {
+  :Hitung jumlah insiden\nyang melebihi SLA\n(per severity);
+}
+
+partition "Subquery 3: Recent" {
+  :Ambil 10 insiden terbaru\n(ORDER BY created_at DESC);
+}
+
+partition "Subquery 4: Attention" {
+  :Ambil 50 insiden aktif\n(ORDER BY severity, created_at ASC);
+  :Kirim ke frontend;
+}
+
+:Sistem menghitung attention_score\nuntuk setiap insiden (Python);
+:Frontend menerima response JSON;
+:Frontend menampilkan 4 stat cards:
+note right
+  - Total Open
+  - Critical
+  - Unassigned
+  - Past SLA
+end note
+
+:Frontend mengelompokkan insiden:
+note right
+  1. SLA Breached (overdue)
+  2. High Priority (attention score)
+  3. Recent Incidents (chronological)
+end note
+
+:Frontend menampilkan dashboard\nlengkap dengan skeleton loading\nsaat memuat data;
+stop
+@enduml

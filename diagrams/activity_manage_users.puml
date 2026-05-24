@@ -1,0 +1,68 @@
+@startuml
+title **Activity Diagram - Manage Users (UC-09)**
+
+start
+:Admin membuka halaman Manage Users;
+:Sistem menampilkan daftar user\ndalam bentuk tabel;
+:Sistem menampilkan tombol "Create User";
+
+partition "Create User" {
+  :Klik tombol "Create User";
+  :Sistem menampilkan modal form;
+  :Mengisi data user:\n- Username\n- Full Name\n- Password\n- Role;
+  :Klik tombol "Save";
+  :Sistem mengirim request POST /api/users;
+  if (Username sudah ada?) then (ya)
+    :Tampilkan error "Username already exists";
+  else (tidak)
+    :Sistem membuat user baru;
+    :Sistem mencatat audit log CREATE user;
+    :Sistem menutup modal;
+    :Sistem merefresh tabel;
+  endif
+}
+
+partition "Edit User" {
+  :Klik tombol "Manage" pada baris user;
+  :Sistem menampilkan modal edit;
+  :Mengubah field:\n- Username\n- Full Name\n- Role\n- Active status;
+  :Klik tombol "Save";
+  :Sistem mengirim request PUT /api/users/{id};
+  if (Superadmin protection?) then (ya)
+    :Tampilkan error "Tidak bisa\nmengubah superadmin";
+  else (tidak)
+    if (Last admin protection?) then (ya)
+      :Tampilkan error "Harus ada\nminimal 1 admin aktif";
+    else (tidak)
+      :Sistem memperbarui user;
+      :Sistem mencatat audit log UPDATE user;
+    endif
+  endif
+}
+
+partition "Reset Password" {
+  :Klik "Reset Password";
+  :Sistem menampilkan input password baru;
+  :Masukkan password baru;
+  :Klik "Reset";
+  :Sistem mengirim request PUT /api/users/{id}/reset-password;
+  :Sistem mencatat audit log;
+  :Tampilkan toast "Password reset successful";
+}
+
+partition "Delete User" {
+  :Klik "Delete";
+  :Sistem menampilkan konfirmasi;
+  if (Dikonfirmasi?) then (ya)
+    :Sistem mengirim request DELETE /api/users/{id};
+    if (Bisa dihapus?) then (ya)
+      :Sistem soft-delete user\n(set is_active = FALSE);
+      :Sistem mencatat audit log DELETE user;
+    else (tidak)
+      :Tampilkan error proteksi;
+    endif
+  endif
+}
+
+stop
+@enduml

@@ -22,6 +22,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (data) => api.post('/auth/login', data),
   seed: () => api.post('/auth/seed'),
+  updateProfile: (data) => api.put('/auth/me', data),
 }
 export const incidentsAPI = {
   dashboard: () => api.get('/incidents/dashboard'),

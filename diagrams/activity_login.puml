@@ -1,0 +1,27 @@
+@startuml
+title **Activity Diagram - Login (UC-01)**
+
+start
+:User membuka halaman Login;
+repeat
+  :Mengisi username dan password;
+  :Klik tombol "Login";
+  :Sistem mengirim request POST /api/auth/login;
+  if (Username dan password valid?) then (ya)
+    :Sistem membuat JWT token;
+    :Sistem menyimpan token di localStorage;
+    :Sistem redirect ke Dashboard;
+    stop
+  else (tidak)
+    if (Percobaan <= 5?) then (ya)
+      :Tampilkan pesan "Username/password salah";
+      note right: Rate limit: 5 req/menit/IP
+    else (tidak)
+      :Tampilkan pesan "Terlalu banyak percobaan.\nSilakan coba lagi nanti";
+      :Blokir IP selama 1 menit;
+    endif
+  endif
+repeat while (Masih ingin mencoba?) is (ya)
+-> (tidak);
+stop
+@enduml
