@@ -8,5 +8,6 @@ __pycache__/
 scripts/
 deliverables/
 docs/
+#backend
 backend/app/migration
 AGENTS.md
