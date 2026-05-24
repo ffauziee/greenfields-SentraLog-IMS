@@ -20,12 +20,6 @@ const STATUS_OPTIONS = [
   { value: 5, label: 'ESCALATED' },
 ]
 
-const OPERATOR_STATUS_OPTIONS = [
-  { value: 1, label: 'OPEN' },
-  { value: 2, label: 'IN_PROGRESS' },
-  { value: 3, label: 'RESOLVED' },
-]
-
 function StatusBadge({ name }) {
   return <span className={cn('px-1.5 py-0.5 rounded text-[11px] font-medium leading-none', STATUS_COLORS[name] || 'bg-gray-100')}>{name}</span>
 }

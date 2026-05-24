@@ -100,12 +100,12 @@ def count_incidents_simple(where_clause: str, params: tuple):
     )
 
 
-def find_incidents(where_clause: str, params: tuple, limit: int, offset: int):
+def find_incidents(where_clause: str, params: tuple, limit: int, offset: int, order_clause: str = "ORDER BY s.level DESC, i.created_at DESC"):
     return query_all(
         f"""{INCIDENT_LIST_SELECT}
         {INCIDENT_LIST_JOIN}
         WHERE {where_clause}
-        ORDER BY s.level DESC, i.created_at DESC
+        {order_clause}
         LIMIT %s OFFSET %s""",
         params + (limit, offset),
     )

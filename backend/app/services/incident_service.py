@@ -58,6 +58,8 @@ def list_incidents(
     status: Optional[int] = None,
     status_group: str = "active",
     assigned_to_me: bool = False,
+    sort_by: Optional[str] = None,
+    sort_order: Optional[str] = None,
     page: int = 1,
     limit: int = 20,
 ):
@@ -70,12 +72,14 @@ def list_incidents(
     f.by_search(search)
     f.by_severity(severity)
     f.by_status(status)
+    f.by_sort(sort_by, sort_order)
 
     where, params = f.build()
+    order_clause = f.build_sort()
     offset = (page - 1) * limit
 
     total = repo.count_incidents_simple(where, params)["count"]
-    incidents = repo.find_incidents(where, params, limit, offset)
+    incidents = repo.find_incidents(where, params, limit, offset, order_clause)
 
     return {
         "total": total,

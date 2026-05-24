@@ -71,6 +71,7 @@ class UserCreate(BaseModel):
 
 
 class UserUpdate(BaseModel):
+    username: Optional[str] = Field(None, min_length=3, max_length=50)
     full_name: Optional[str] = Field(None, min_length=2, max_length=100)
     role: Optional[str] = Field(None, pattern="^(superadmin|admin|operator)$")
     is_active: Optional[bool] = None
@@ -159,6 +160,14 @@ def update_user(
         raise HTTPException(status_code=404, detail="User not found")
 
     updates = {}
+    if data.username is not None:
+        existing_username = query_one(
+            "SELECT id FROM users WHERE username = %s AND id != %s",
+            (data.username, user_id),
+        )
+        if existing_username:
+            raise HTTPException(status_code=400, detail="Username already taken")
+        updates["username"] = data.username
     if data.full_name is not None:
         updates["full_name"] = data.full_name
     if data.role is not None:

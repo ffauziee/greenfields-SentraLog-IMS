@@ -1,12 +1,26 @@
-from typing import Optional
+from typing import Optional, Tuple
 
 from ..core.constants import STATUS_ACTIVE, STATUS_ARCHIVED, STATUS_UNASSIGNED
+
+SORT_COLUMNS = {
+    'title': 'i.title',
+    'severity': 's.level',
+    'status': 'st.name',
+    'reported_by': 'u.username',
+    'assigned_to': 'a.username',
+    'created': 'i.created_at',
+}
+
+ALLOWED_SORT = frozenset(SORT_COLUMNS.keys())
+ALLOWED_ORDER = frozenset(['asc', 'desc'])
 
 
 class IncidentFilter:
     def __init__(self):
         self.conditions = ["i.is_deleted = FALSE"]
         self.params = []
+        self.sort_by = None
+        self.sort_order = None
 
     def by_status_group(self, status_group: str):
         if status_group == "archived":
@@ -46,6 +60,17 @@ class IncidentFilter:
         if date_to:
             self.conditions.append("i.created_at <= (%s::timestamp + INTERVAL '1 day' - INTERVAL '1 second')")
             self.params.append(date_to)
+
+    def by_sort(self, sort_by: Optional[str], sort_order: Optional[str]):
+        if sort_by in ALLOWED_SORT and sort_order in ALLOWED_ORDER:
+            self.sort_by = sort_by
+            self.sort_order = sort_order
+
+    def build_sort(self) -> str:
+        if self.sort_by:
+            col = SORT_COLUMNS[self.sort_by]
+            return f"ORDER BY {col} {'ASC' if self.sort_order == 'asc' else 'DESC'}"
+        return "ORDER BY s.level DESC, i.created_at DESC"
 
     def build(self):
         return " AND ".join(self.conditions), tuple(self.params)

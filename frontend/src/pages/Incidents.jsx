@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react'
+import { ChevronUp, ChevronDown } from 'lucide-react'
 import { incidentsAPI, usersAPI } from '../services/api'
 import Toast from '../components/Toast'
 import Pagination from '../components/Pagination'
@@ -6,22 +7,6 @@ import IncidentDetail from '../components/IncidentDetail'
 import { cn } from '../lib/cn'
 import { isAdmin as checkAdmin } from '../lib/roles'
 import { useToast } from '../hooks/useToast'
-
-const STATUS_OPTIONS = {
-  admin: [
-    { value: 1, label: 'OPEN' },
-    { value: 2, label: 'IN_PROGRESS' },
-    { value: 3, label: 'RESOLVED' },
-    { value: 4, label: 'CLOSED' },
-    { value: 5, label: 'ESCALATED' },
-  ],
-  operator: [
-    { value: 1, label: 'OPEN' },
-    { value: 2, label: 'IN_PROGRESS' },
-    { value: 3, label: 'RESOLVED' },
-  ],
-}
-
 const STATUS_COLORS = {
   OPEN: 'bg-blue-100 text-blue-700',
   IN_PROGRESS: 'bg-yellow-100 text-yellow-700',
@@ -51,6 +36,8 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   const [search, setSearch] = useState('')
   const [submittedSearch, setSubmittedSearch] = useState('')
   const [sevFilter, setSevFilter] = useState('')
+  const [sortBy, setSortBy] = useState('')
+  const [sortOrder, setSortOrder] = useState('')
   const [tab, setTab] = useState('active')
   const [showExportOptions, setShowExportOptions] = useState(false)
   const [exportDateFrom, setExportDateFrom] = useState(() => {
@@ -93,11 +80,12 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
     }
     if (submittedSearch) params.search = submittedSearch
     if (sevFilter) params.severity = sevFilter
+    if (sortBy) { params.sort_by = sortBy; params.sort_order = sortOrder }
     incidentsAPI.list(params, { signal: controller.signal })
       .then(res => { setIncidents(res.data.data); setTotal(res.data.total) })
       .catch(err => { if (err.code !== 'ERR_CANCELED') showToast('Failed to load incidents', 'error') })
       .finally(() => setLoading(false))
-  }, [page, sevFilter, statusGroupParam, tab, submittedSearch])
+  }, [page, sevFilter, statusGroupParam, tab, submittedSearch, sortBy, sortOrder])
 
   useEffect(() => { fetchIncidents() }, [fetchIncidents])
   useEffect(() => { if (refresh) fetchIncidents() }, [refresh])
@@ -197,6 +185,37 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
 
   const totalPages = useMemo(() => Math.ceil(total / limit), [total, limit])
 
+  const SORTABLE_COLS = [
+    { key: 'title', label: 'Title', className: 'w-[26%]' },
+    { key: 'severity', label: 'Severity', className: 'w-[11%]' },
+    { key: 'status', label: 'Status', className: 'w-[13%]' },
+    { key: 'reported_by', label: 'Reported By', className: 'w-[13%]' },
+    { key: 'assigned_to', label: 'Assigned To', className: 'w-[13%]' },
+    { key: 'created', label: 'Created', className: 'w-[10%]' },
+  ]
+
+  const handleSort = (colKey) => {
+    if (sortBy === colKey) {
+      if (sortOrder === 'asc') {
+        setSortOrder('desc')
+      } else {
+        setSortBy('')
+        setSortOrder('')
+      }
+    } else {
+      setSortBy(colKey)
+      setSortOrder('asc')
+      setPage(1)
+    }
+  }
+
+  const SortIcon = ({ colKey }) => {
+    if (sortBy !== colKey) return null
+    return sortOrder === 'asc'
+      ? <ChevronUp className="w-3.5 h-3.5 inline-block ml-0.5 -mt-0.5" />
+      : <ChevronDown className="w-3.5 h-3.5 inline-block ml-0.5 -mt-0.5" />
+  }
+
   return (
     <div className="p-6">
       {toast && <Toast message={toast.message} type={toast.type} onClose={closeToast} />}
@@ -270,14 +289,16 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
 
       <div className="bg-white rounded-xl shadow overflow-x-auto" style={{ scrollbarGutter: 'stable' }}>
         <table className="w-full table-fixed">
-          <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+          <thead className="bg-gray-50 text-xs uppercase text-gray-500 select-none">
             <tr>
-              <th className="p-3 text-left w-[26%]">Title</th>
-              <th className="p-3 text-left w-[11%]">Severity</th>
-              <th className="p-3 text-left w-[13%]">Status</th>
-              <th className="p-3 text-left w-[13%]">Reported By</th>
-              <th className="p-3 text-left w-[13%]">Assigned To</th>
-              <th className="p-3 text-left w-[10%]">Created</th>
+              {SORTABLE_COLS.map(col => (
+                <th key={col.key}
+                  className={cn('p-3 text-left cursor-pointer hover:text-gray-700 transition-colors', col.className)}
+                  onClick={() => handleSort(col.key)}>
+                  {col.label}
+                  <SortIcon colKey={col.key} />
+                </th>
+              ))}
               <th className="p-3 text-left w-[14%]">Actions</th>
             </tr>
           </thead>

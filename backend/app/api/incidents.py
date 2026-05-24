@@ -21,6 +21,8 @@ def list_incidents(
     status: Optional[int] = Query(None),
     status_group: Optional[str] = Query("active"),
     assigned_to_me: Optional[bool] = Query(False),
+    sort_by: Optional[str] = Query(None),
+    sort_order: Optional[str] = Query(None),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
     current_user: dict = Depends(get_current_user),
@@ -33,6 +35,8 @@ def list_incidents(
         status=status,
         status_group=status_group,
         assigned_to_me=assigned_to_me,
+        sort_by=sort_by,
+        sort_order=sort_order,
         page=page,
         limit=limit,
     )
