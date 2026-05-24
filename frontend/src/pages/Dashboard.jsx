@@ -37,12 +37,14 @@ const Dashboard = memo(function Dashboard({ user }) {
   const [loading, setLoading] = useState(true)
   const [detailId, setDetailId] = useState(null)
   const [refresh, setRefresh] = useState(0)
+  const [error, setError] = useState(false)
   const { toast, showToast, closeToast } = useToast()
 
   useEffect(() => {
+    setError(false)
     incidentsAPI.dashboard()
       .then(res => setData(res.data))
-      .catch(console.error)
+      .catch(() => { setError(true); showToast('Failed to load dashboard', 'error') })
       .finally(() => setLoading(false))
   }, [refresh])
 
@@ -60,6 +62,7 @@ const Dashboard = memo(function Dashboard({ user }) {
   }, [data?.attention_incidents])
 
   if (loading) return <div className="p-6 text-gray-500">Loading dashboard...</div>
+  if (error) return <div className="p-6 text-red-500">Failed to load dashboard. <button onClick={() => setRefresh(n => n + 1)} className="underline hover:text-red-700">Retry</button></div>
 
   const severityBadge = (name, color) => (
     <span className="px-2 py-0.5 rounded text-white text-xs font-bold leading-none" style={{ backgroundColor: color }}>{name}</span>

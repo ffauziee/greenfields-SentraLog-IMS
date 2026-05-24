@@ -25,7 +25,9 @@ function PageLoading() {
 /** Root App: auth state, routing, sidebar layout */
 export default function App() {
   const [token, setToken] = useState(localStorage.getItem('token'))
-  const [user, setUser] = useState(JSON.parse(localStorage.getItem('user') || '{}'))
+  const [user, setUser] = useState(() => {
+    try { return JSON.parse(localStorage.getItem('user') || '{}') } catch { return {} }
+  })
   const [sidebarOpen, setSidebarOpen] = useState(true)
 
   const handleLogin = (token, userData) => {

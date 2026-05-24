@@ -1,7 +1,8 @@
 import { memo } from 'react'
 import { NavLink } from 'react-router-dom'
-import { CircleGauge, Zap, Users, ChevronLeft, History, UserCheck } from 'lucide-react'
+import { CircleGauge, Zap, Users, ChevronLeft, History, UserCheck, LogOut } from 'lucide-react'
 import { cn } from '../lib/cn'
+import { isAdmin } from '../lib/roles'
 
 const NAV_ITEMS = [
   { path: '/', label: 'Dashboard', Icon: CircleGauge },
@@ -10,7 +11,7 @@ const NAV_ITEMS = [
 ]
 
 const Sidebar = memo(function Sidebar({ user, onLogout, collapsed, onToggle }) {
-  const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
+  const admin = isAdmin(user)
 
   const linkBase = 'flex items-center h-10 rounded-md text-sm whitespace-nowrap transition-colors duration-150 mx-2'
   const linkSpacing = collapsed ? 'justify-center' : 'gap-3 px-3'
@@ -42,7 +43,7 @@ const Sidebar = memo(function Sidebar({ user, onLogout, collapsed, onToggle }) {
             <span className={cn('transition-opacity duration-200', labelVisibility)}>{label}</span>
           </NavLink>
         ))}
-        {isAdmin && ['Manage Users', 'Activity Log'].map(label => {
+        {admin && ['Manage Users', 'Activity Log'].map(label => {
           const path = label === 'Manage Users' ? '/manage-users' : '/activity-log'
           const Icon = label === 'Manage Users' ? Users : History
           return (
@@ -72,7 +73,7 @@ const Sidebar = memo(function Sidebar({ user, onLogout, collapsed, onToggle }) {
               'text-white text-sm rounded-md bg-red-600 hover:bg-red-700 transition-all duration-200',
               collapsed ? 'w-8 h-8 p-0 flex items-center justify-center' : 'w-full py-2 px-3',
             )}>
-            {collapsed ? '×' : 'Sign Out'}
+            {collapsed ? <LogOut size={16} /> : 'Sign Out'}
           </button>
         </div>
       </div>

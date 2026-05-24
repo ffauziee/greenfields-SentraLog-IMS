@@ -14,6 +14,7 @@ export default function ManageUsers({ user }) {
   const [showResetPw, setShowResetPw] = useState(null)
   const [form, setForm] = useState({ username: '', password: '', full_name: '', role: 'operator' })
   const [resetPw, setResetPw] = useState('')
+  const [isEditingSuperAdminUser, setIsEditingSuperAdminUser] = useState(false)
   const { toast, showToast, closeToast } = useToast()
 
   const fetchUsers = useCallback(() => {
@@ -35,6 +36,7 @@ export default function ManageUsers({ user }) {
   const openEdit = (u) => {
     setEditId(u.id)
     setForm({ username: u.username, password: '', full_name: u.full_name, role: u.role })
+    setIsEditingSuperAdminUser(u.role === 'superadmin')
     setShowModal(true)
   }
 
@@ -101,7 +103,7 @@ export default function ManageUsers({ user }) {
     }
   }
 
-  const isEditingSuperadmin = editId && form.username === 'admin' && form.role === 'superadmin'
+  const isEditingSuperadmin = editId && isEditingSuperAdminUser
 
   const roleBadge = (role) => {
     const colors = { superadmin: 'bg-emerald-100 text-emerald-700', admin: 'bg-purple-100 text-purple-700', operator: 'bg-blue-100 text-blue-700' }

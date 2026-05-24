@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 from ..core.config import get_settings
 from ..db.database import execute, query_all, query_one
@@ -58,9 +58,16 @@ def ensure_admin_account_safety(
 
 class UserCreate(BaseModel):
     username: str = Field(..., min_length=3, max_length=50)
-    password: str = Field(..., min_length=6)
+    password: str
     full_name: str = Field(..., min_length=2, max_length=100)
     role: str = Field(..., pattern="^(superadmin|admin|operator)$")
+
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password should have at least 6 characters')
+        return v
 
 
 class UserUpdate(BaseModel):
@@ -70,7 +77,14 @@ class UserUpdate(BaseModel):
 
 
 class PasswordReset(BaseModel):
-    password: str = Field(..., min_length=6)
+    password: str
+
+    @field_validator('password')
+    @classmethod
+    def validate_password(cls, v):
+        if len(v) < 6:
+            raise ValueError('Password should have at least 6 characters')
+        return v
 
 
 @router.get("")
@@ -222,9 +236,10 @@ def delete_user(user_id: str, current_user: dict = Depends(require_role(["admin"
           COALESCE((SELECT COUNT(*) FROM incidents WHERE assigned_to = %s), 0)
           + COALESCE((SELECT COUNT(*) FROM incidents WHERE reported_by = %s), 0)
           + COALESCE((SELECT COUNT(*) FROM incident_comments WHERE user_id = %s), 0)
+          + COALESCE((SELECT COUNT(*) FROM audit_logs WHERE user_id = %s), 0)
           AS count
         """,
-        (user_id, user_id, user_id),
+        (user_id, user_id, user_id, user_id),
     )
     if refs["count"] > 0:
         execute(

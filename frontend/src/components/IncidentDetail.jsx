@@ -34,8 +34,9 @@ const IncidentDetail = memo(function IncidentDetail({ incidentId, isOpen, onClos
   const [detail, setDetail] = useState(null)
   const [loading, setLoading] = useState(false)
   const [editMode, setEditMode] = useState(false)
-  const [editForm, setEditForm] = useState({ status_id: 1, description: '', comment: '' })
+  const [editForm, setEditForm] = useState({ status_id: 1, description: '', comment: '', assigned_to: '' })
   const [editSaving, setEditSaving] = useState(false)
+  const [operators, setOperators] = useState([])
 
   const isAdmin = user?.role === 'superadmin' || user?.role === 'admin'
   const isAssignedToMe = detail && detail.assigned_to != null &&
@@ -52,8 +53,11 @@ const IncidentDetail = memo(function IncidentDetail({ incidentId, isOpen, onClos
 
   const openEdit = () => {
     if (!detail) return
-    setEditForm({ status_id: detail.status_id, description: detail.description || '', comment: '' })
+    setEditForm({ status_id: detail.status_id, description: detail.description || '', comment: '', assigned_to: detail.assigned_to || '' })
     setEditMode(true)
+    if (isAdmin && operators.length === 0) {
+      usersAPI.list({ role: 'operator' }).then(res => setOperators(res.data)).catch(() => {})
+    }
   }
 
   const handleEditSubmit = async (e) => {
@@ -61,7 +65,10 @@ const IncidentDetail = memo(function IncidentDetail({ incidentId, isOpen, onClos
     setEditSaving(true)
     try {
       const payload = { status_id: editForm.status_id }
-      if (isAdmin) payload.description = editForm.description
+      if (isAdmin) {
+        payload.description = editForm.description
+        payload.assigned_to = editForm.assigned_to
+      }
       if (editForm.comment) payload.comment = editForm.comment
       await incidentsAPI.update(incidentId, payload)
       showToast('Incident updated')
@@ -94,7 +101,13 @@ const IncidentDetail = memo(function IncidentDetail({ incidentId, isOpen, onClos
     <span className="px-2 py-0.5 rounded text-white text-xs font-bold leading-none" style={{ backgroundColor: color }}>{name}</span>
   )
 
-  const statusOpts = isAdmin ? STATUS_OPTIONS : OPERATOR_STATUS_OPTIONS
+  const OPERATOR_TRANSITIONS = { 1: [1, 2], 2: [2, 3], 3: [], 4: [], 5: [] }
+
+  const statusOpts = isAdmin
+    ? STATUS_OPTIONS
+    : (OPERATOR_TRANSITIONS[detail?.status_id] || []).map(id =>
+        STATUS_OPTIONS.find(s => s.value === id)
+      ).filter(Boolean)
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4" onClick={onClose}>
@@ -112,7 +125,7 @@ const IncidentDetail = memo(function IncidentDetail({ incidentId, isOpen, onClos
                 <h2 className="text-xl font-bold text-gray-800">{detail.title}</h2>
               </div>
               <div className="flex items-center gap-2 shrink-0">
-                {!editMode && (isAdmin || isAssignedToMe) && (
+                {!editMode && (isAdmin || (isAssignedToMe && OPERATOR_TRANSITIONS[detail?.status_id]?.length > 0)) && (
                   <button onClick={openEdit}
                     className="flex items-center gap-1.5 text-xs text-indigo-600 hover:text-indigo-800 font-medium bg-indigo-50 hover:bg-indigo-100 px-3 py-1.5 rounded-lg transition-colors">
                     <PenLine className="w-3.5 h-3.5" /> Edit
@@ -171,6 +184,19 @@ const IncidentDetail = memo(function IncidentDetail({ incidentId, isOpen, onClos
                         onChange={e => setEditForm({ ...editForm, description: e.target.value })}
                         className="w-full px-3 py-1.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500"
                         rows="3" />
+                    </div>
+                  )}
+                  {isAdmin && (
+                    <div>
+                      <label className="block text-xs text-gray-500 mb-1">Assigned To</label>
+                      <select value={editForm.assigned_to}
+                        onChange={e => setEditForm({ ...editForm, assigned_to: e.target.value })}
+                        className="w-full px-3 py-1.5 border rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option value="">-- Unassigned --</option>
+                        {operators.filter(op => op.is_active).map(op => (
+                          <option key={op.id} value={op.id}>{op.full_name} ({op.username})</option>
+                        ))}
+                      </select>
                     </div>
                   )}
                   <div>

@@ -3,11 +3,10 @@ __pycache__/
 *.pyc
 *.pyo
 .venv/
+node_modules/
 #other
 .env
 scripts/
 deliverables/
 docs/
-#backend
-backend/app/migration
 AGENTS.md

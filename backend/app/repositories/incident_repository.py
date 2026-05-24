@@ -41,7 +41,7 @@ def get_dashboard_data():
             (SELECT json_build_object(
                 'total_open', COUNT(*),
                 'critical_count', COUNT(*) FILTER (WHERE s.name = 'CRITICAL'),
-                'unassigned_count', COUNT(*) FILTER (WHERE i.assigned_to IS NULL)
+                    'unassigned_count', COUNT(*) FILTER (WHERE i.assigned_to IS NULL AND i.status_id IN %s)
             )
             FROM incidents i
             JOIN severity_levels s ON i.severity_id = s.id
@@ -81,6 +81,7 @@ def get_dashboard_data():
                 LIMIT %s
             ) a) as attention_incidents""",
         (
+            STATUS_ACTIVE,
             STATUS_ACTIVE,
             STATUS_ACTIVE,
             *sla_params,
@@ -140,7 +141,8 @@ def stream_all_incidents(where_clause: str, params: tuple):
                            a.username as assigned_to_name
                     {INCIDENT_LIST_JOIN}
                     WHERE {where_clause}
-                    ORDER BY s.level DESC, i.created_at DESC""",
+                    ORDER BY s.level DESC, i.created_at DESC
+                    LIMIT {EXPORT_ROW_LIMIT}""",
                 params,
             )
             while True:

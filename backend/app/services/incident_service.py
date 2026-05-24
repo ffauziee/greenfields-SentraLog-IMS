@@ -224,8 +224,11 @@ def update_incident(incident_id: str, data, current_user: dict):
     if data.assigned_to is not None:
         if not is_admin_role(role):
             raise HTTPException(status_code=403, detail="Only admin can reassign incidents")
-        _require_active_user(data.assigned_to)
-        updates["assigned_to"] = data.assigned_to
+        if data.assigned_to:
+            _require_active_user(data.assigned_to)
+            updates["assigned_to"] = data.assigned_to
+        else:
+            updates["assigned_to"] = None
 
     if role == "operator":
         allowed = {"status_id", "is_resolved", "resolved_at"}
@@ -238,7 +241,7 @@ def update_incident(incident_id: str, data, current_user: dict):
         updates["updated_at"] = datetime.now(timezone.utc)
         repo.update_incident_fields(incident_id, updates)
 
-    audit_changes = dict(updates)
+    audit_changes = dict(updates) if updates else {}
     if data.comment:
         repo.insert_comment(incident_id, user_id, data.comment)
         audit_changes["comment"] = data.comment

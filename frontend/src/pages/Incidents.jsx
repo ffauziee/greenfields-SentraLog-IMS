@@ -66,6 +66,7 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   const { toast, showToast, closeToast } = useToast()
   const limit = 20
   const abortRef = useRef(null)
+  const exportRef = useRef(null)
 
   const adminTabs = [
     { key: 'active', label: 'Active' },
@@ -90,9 +91,6 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
     if (myIncidents) {
       params.assigned_to_me = true
     }
-    if (tab === 'mine') {
-      params.status_group = 'active'
-    }
     if (submittedSearch) params.search = submittedSearch
     if (sevFilter) params.severity = sevFilter
     incidentsAPI.list(params, { signal: controller.signal })
@@ -103,6 +101,14 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
 
   useEffect(() => { fetchIncidents() }, [fetchIncidents])
   useEffect(() => { if (refresh) fetchIncidents() }, [refresh])
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (exportRef.current && !exportRef.current.contains(e.target)) setShowExportOptions(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const loadOperators = useCallback(() => {
     if (operators.length === 0 && isAdmin) {
@@ -175,6 +181,7 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
   }
 
   const handleDelete = async (id) => {
+    if (!window.confirm('Delete this incident?')) return
     try {
       await incidentsAPI.delete(id)
       showToast('Incident deleted successfully')
@@ -186,7 +193,6 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
 
   const handleDetailUpdated = () => {
     setRefresh(n => n + 1)
-    fetchIncidents()
   }
 
   const totalPages = useMemo(() => Math.ceil(total / limit), [total, limit])
@@ -228,7 +234,7 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
           <option value="1">LOW</option>
         </select>
         <button type="submit" className="bg-gray-200 px-4 py-2 rounded-lg hover:bg-gray-300">Search</button>
-        <div className="relative">
+        <div className="relative" ref={exportRef}>
           <button type="button" onClick={() => setShowExportOptions(!showExportOptions)}
             className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 whitespace-nowrap">Export CSV</button>
           {showExportOptions && (
@@ -236,20 +242,20 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
               <div className="space-y-3">
                 <div className="flex gap-2">
                   <button type="button" onClick={() => setLastMonths(3)}
-                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">3 Bulan</button>
+                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">3 Months</button>
                   <button type="button" onClick={() => setLastMonths(6)}
-                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">6 Bulan</button>
+                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">6 Months</button>
                   <button type="button" onClick={() => setLastMonths(12)}
-                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">1 Tahun</button>
+                    className="flex-1 px-2 py-1 text-xs border rounded hover:bg-gray-50">1 Year</button>
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Dari</label>
+                  <label className="block text-xs text-gray-500 mb-1">From</label>
                   <input type="date" value={exportDateFrom}
                     onChange={e => setExportDateFrom(e.target.value)}
                     className="w-full px-3 py-1.5 border rounded text-sm outline-none" />
                 </div>
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Sampai</label>
+                  <label className="block text-xs text-gray-500 mb-1">To</label>
                   <input type="date" value={exportDateTo}
                     onChange={e => setExportDateTo(e.target.value)}
                     className="w-full px-3 py-1.5 border rounded text-sm outline-none" />
@@ -290,10 +296,10 @@ const Incidents = memo(function Incidents({ user, myIncidents }) {
                 <td className="p-3 text-sm">{new Date(inc.created_at).toLocaleDateString()}</td>
                 <td className="p-3">
                   <div className="flex gap-2">
-                    <button onClick={() => setDetailId(inc.id)}
+                    <button type="button" onClick={() => setDetailId(inc.id)}
                       className="bg-indigo-600 text-white px-3 py-1 rounded text-xs hover:bg-indigo-700">Detail</button>
                     {isAdmin && (
-                      <button onClick={() => handleDelete(inc.id)}
+                      <button type="button" onClick={() => handleDelete(inc.id)}
                         className="bg-red-600 text-white px-3 py-1 rounded text-xs hover:bg-red-700">Delete</button>
                     )}
                   </div>

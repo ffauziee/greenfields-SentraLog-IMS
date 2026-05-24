@@ -68,14 +68,17 @@ def execute(sql: str, params: tuple = None):
 
 def check_db():
     """Ping the database by running SELECT 1. Returns True if reachable."""
+    conn = None
     try:
         conn = get_pool().getconn()
         with conn.cursor() as cur:
             cur.execute("SELECT 1")
-        get_pool().putconn(conn)
         return True
     except Exception:
         return False
+    finally:
+        if conn is not None:
+            get_pool().putconn(conn)
 
 
 def close_pool():

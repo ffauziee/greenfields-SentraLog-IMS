@@ -13,6 +13,9 @@ api.interceptors.response.use(
       localStorage.removeItem('user')
       window.location.reload()
     }
+    if (error.response?.data?.detail && Array.isArray(error.response.data.detail)) {
+      error.response.data.detail = error.response.data.detail.map(d => d.msg).join('; ')
+    }
     return Promise.reject(error)
   }
 )
