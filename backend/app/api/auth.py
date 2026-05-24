@@ -125,12 +125,12 @@ def seed_users():
                 (
                     username,
                     f"{username}@greenfields.com",
-                    hash_password("operator"),
+                    hash_password("operator123"),
                     full_name,
                     role,
                 ),
             )
-            created.append(f"{full_name} ({username}/operator)")
+            created.append(f"{full_name} ({username}/operator123)")
 
     if not created:
         return {"message": "All users already exist"}

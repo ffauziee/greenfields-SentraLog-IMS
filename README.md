@@ -32,18 +32,20 @@ Create database and run migrations:
 ```powershell
 $env:PGPASSWORD='postgres'
 psql -U postgres -c "CREATE DATABASE greenfields_audit;"
-Get-ChildItem backend/app/migration/*.sql | Sort-Object Name | ForEach-Object {
+Get-ChildItem backend/app/migration/00[1-4]*.sql | Sort-Object Name | ForEach-Object {
     psql -U postgres -d greenfields_audit -f $_.FullName
 }
 ```
+> Migration `005_clean_seed_data.sql` dilewati — lihat [Migration Notes](#migration-notes) untuk penjelasan.
 
 **Linux / macOS:**
 ```bash
 sudo -u postgres psql -c "CREATE DATABASE greenfields_audit;"
-for f in backend/app/migration/*.sql; do
+for f in backend/app/migration/00[1-4]*.sql; do
     psql -U postgres -d greenfields_audit -f "$f"
 done
 ```
+> Migration `005_clean_seed_data.sql` dilewati — lihat [Migration Notes](#migration-notes) untuk penjelasan.
 
 ### 2. Backend (port 8000)
 
@@ -54,10 +56,19 @@ uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
 ```
 
 > `.env` sudah tersedia — tidak perlu konfigurasi tambahan.
+> **Biarkan terminal backend tetap jalan**, buka terminal baru untuk langkah selanjutnya.
 
-### 3. Frontend (port 5173)
+### 3. Seed Default Accounts
 
-Buka **terminal baru**:
+Jalankan endpoint seed (cukup sekali) untuk membuat akun default `admin`, `operator_a`, `operator_b`, `operator_c`:
+
+```bash
+curl -X POST http://localhost:8000/api/auth/seed
+```
+
+Expected response: `{"message":"Created: superadmin (admin/admin123), ..."}`
+
+### 4. Frontend (port 5173)
 
 ```bash
 cd frontend
@@ -65,9 +76,25 @@ npm install
 npm run dev
 ```
 
-### 4. Open
+### 5. Open
 
 Buka **http://localhost:5173** dan login dengan akun default di bawah.
+
+---
+
+## Migration Notes
+
+| File | Run? | Fungsi |
+|---|---|---|
+| `001_add_superadmin_role.sql` | ✅ Ya | Tambah role `superadmin` + update constraint `users.role` |
+| `002_add_performance_indexes.sql` | ✅ Ya | Index performa (composite, trigram, FK) untuk data skala besar |
+| `003_seed_dummy_data.sql` | ✅ Ya | Data dummy user + incident + komentar untuk development |
+| `004_add_audit_created_index.sql` | ✅ Ya | Index `audit_logs.created_at DESC` |
+| `005_clean_seed_data.sql` | ❌ **JANGAN** | Hapus semua dummy data (incident, komentar, audit log) — **hanya untuk dibuka sebelum go-live ke production** |
+
+> **Kenapa 005 tidak boleh dijalankan saat testing?** Karena akan menghapus seluruh data dummy dari migration 003, termasuk incident dan komentar yang diperlukan untuk demo/testing fitur.
+
+> **Catatan:** Migration 005 punya guard (`myapp.allow_cleanup`) sehingga tidak bisa jalan tanpa sengaja. Tapi kami tetap mengecualikannya dari perintah migrasi standar untuk menghindari kebingungan.
 
 ---
 
@@ -76,9 +103,9 @@ Buka **http://localhost:5173** dan login dengan akun default di bawah.
 | Username | Password | Role |
 |---|---|---|
 | `admin` | `admin123` | Superadmin |
-| `operator_a` | `operator` | Operator |
-| `operator_b` | `operator` | Operator |
-| `operator_c` | `operator` | Operator |
+| `operator_a` | `operator123` | Operator |
+| `operator_b` | `operator123` | Operator |
+| `operator_c` | `operator123` | Operator |
 
 > **Security note for testing:** The `.env` file is included in the repository with a placeholder `SECRET_KEY`. For production deployments, replace it with a strong random string.
 
