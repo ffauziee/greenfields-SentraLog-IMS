@@ -32,7 +32,7 @@ Create database and run migrations:
 ```powershell
 $env:PGPASSWORD='postgres' //atau sesuaikan dengan password yang dimiliki
 psql -U postgres -c "CREATE DATABASE greenfields_audit;"
-Get-ChildItem backend/app/migration/00[1-4]*.sql | Sort-Object Name | ForEach-Object {
+Get-ChildItem backend/app/migration/00[0-4]*.sql | Sort-Object Name | ForEach-Object {
     psql -U postgres -d greenfields_audit -f $_.FullName
 }
 ```
@@ -41,7 +41,7 @@ Get-ChildItem backend/app/migration/00[1-4]*.sql | Sort-Object Name | ForEach-Ob
 **Linux / macOS:**
 ```bash
 sudo -u postgres psql -c "CREATE DATABASE greenfields_audit;"
-for f in backend/app/migration/00[1-4]*.sql; do
+for f in backend/app/migration/00[0-4]*.sql; do
     psql -U postgres -d greenfields_audit -f "$f"
 done
 ```
@@ -86,6 +86,7 @@ Buka **http://localhost:5173** dan login dengan akun default di bawah.
 
 | File | Run? | Fungsi |
 |---|---|---|
+| `000_initial_schema.sql` | ✅ Ya | Buat seluruh tabel (CREATE TABLE IF NOT EXISTS) + lookup data + base index |
 | `001_add_superadmin_role.sql` | ✅ Ya | Tambah role `superadmin` + update constraint `users.role` |
 | `002_add_performance_indexes.sql` | ✅ Ya | Index performa (composite, trigram, FK) untuk data skala besar |
 | `003_seed_dummy_data.sql` | ✅ Ya | Data dummy user + incident + komentar untuk development |
